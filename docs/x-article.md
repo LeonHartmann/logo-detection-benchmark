@@ -132,8 +132,7 @@ Research by Leon Hartmann
 
 I spent $143 making 24 AI models hunt sponsor logos in 8,400 images.
 
-The most expensive model was 36x pricier than the runner-up and 0.04 points
-better.
+The winner beat a rival costing 36x less by 0.04 points.
 
 Full breakdown with every chart drops later today.
 
