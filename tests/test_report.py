@@ -4,6 +4,13 @@ from PIL import Image
 import bench.report as rp
 
 
+def test_fmt_handles_none():
+    assert rp._fmt(None) == "-"
+    assert rp._fmt(0.5) == 0.5
+    assert rp._fmt("text") == "text"
+    assert rp._fmt(0) == 0
+
+
 def test_disagreements_classifies():
     truth = [{"brand": "adidas", "box": [0, 0, 100, 100]}]
     dets = [{"brand": "adidas", "box": [500, 500, 600, 600], "conf": 3}]
@@ -47,3 +54,45 @@ def test_apply_reviews_edits_labels(tmp_path):
     brands = [b["brand"] for b in lab["boxes"]]
     assert brands == ["adidas"]                     # delay removed, adidas added
     assert lab["boxes"][0]["from_review"] is True
+
+
+def test_apply_reviews_idempotent(tmp_path):
+    labels_dir = tmp_path / "data" / "labels"
+    labels_dir.mkdir(parents=True)
+    (labels_dir / "a.jpg.json").write_text(json.dumps(
+        {"image": "a.jpg", "done": True,
+         "boxes": [{"brand": "delay", "box": [1, 1, 9, 9], "size": "small",
+                    "placement": "foreground", "location": "chest"}]}))
+    reviews = [
+        {"entry": {"kind": "model_extra", "image": "a.jpg", "brand": "adidas",
+                   "box": [100, 100, 200, 200]}, "verdict": "model_right"},
+    ]
+    (tmp_path / "data" / "reviews.json").write_text(json.dumps(reviews))
+    rp.apply_reviews(str(tmp_path))
+    lab1 = json.load(open(labels_dir / "a.jpg.json"))
+    assert len(lab1["boxes"]) == 2                   # delay + adidas
+    assert not os.path.exists(tmp_path / "data" / "reviews.json")
+    applied_path = tmp_path / "data" / "reviews.applied.json"
+    assert applied_path.exists()
+    rp.apply_reviews(str(tmp_path))  # run again
+    lab2 = json.load(open(labels_dir / "a.jpg.json"))
+    assert lab2["boxes"] == lab1["boxes"]            # no change on second run
+
+
+def test_apply_reviews_deduplicates_boxes(tmp_path):
+    labels_dir = tmp_path / "data" / "labels"
+    labels_dir.mkdir(parents=True)
+    (labels_dir / "a.jpg.json").write_text(json.dumps(
+        {"image": "a.jpg", "done": True,
+         "boxes": [{"brand": "adidas", "box": [100, 100, 200, 200], "size": "large",
+                    "placement": "background", "location": "sleeve"}]}))
+    reviews = [
+        {"entry": {"kind": "model_extra", "image": "a.jpg", "brand": "adidas",
+                   "box": [100, 100, 200, 200]}, "verdict": "model_right"},
+    ]
+    (tmp_path / "data" / "reviews.json").write_text(json.dumps(reviews))
+    rp.apply_reviews(str(tmp_path))
+    lab = json.load(open(labels_dir / "a.jpg.json"))
+    assert len(lab["boxes"]) == 1                   # not duplicated
+    assert lab["boxes"][0]["brand"] == "adidas"
+    assert lab["boxes"][0]["box"] == [100, 100, 200, 200]

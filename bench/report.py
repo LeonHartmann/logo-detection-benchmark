@@ -2,6 +2,7 @@
 import html
 import json
 import os
+import re
 
 from PIL import Image, ImageDraw
 
@@ -9,6 +10,7 @@ from bench.cli import load_labels, load_manifest, load_raw
 from bench.score import greedy_match
 
 GALLERY_RUNG = 480  # overlays are rendered on the 480 rung: big enough to see, small files
+SAFE_ID = re.compile(r"^[A-Za-z0-9._-]+$")
 
 
 def disagreements(dets, truth):
@@ -43,9 +45,13 @@ def apply_reviews(root):
         print("no reviews.json")
         return
     added = removed = 0
+    applied_reviews = []
     for r in json.load(open(rp)):
         e, verdict = r.get("entry", {}), r.get("verdict")
-        lp = os.path.join(root, "data", "labels", e.get("image", "") + ".json")
+        image_id = e.get("image", "")
+        if not SAFE_ID.match(image_id):
+            continue
+        lp = os.path.join(root, "data", "labels", image_id + ".json")
         if not os.path.exists(lp):
             continue
         lab = json.load(open(lp))
@@ -55,14 +61,26 @@ def apply_reviews(root):
                             if not (b["brand"] == e["brand"] and b["box"] == e["box"])]
             removed += n0 - len(lab["boxes"])
         elif verdict == "model_right" and e.get("kind") == "model_extra":
-            lab["boxes"].append({"brand": e["brand"], "box": e["box"], "size": "small",
-                                 "placement": "foreground", "location": "other",
-                                 "from_review": True})
-            added += 1
+            new_box = {"brand": e["brand"], "box": e["box"], "size": "small",
+                       "placement": "foreground", "location": "other",
+                       "from_review": True}
+            if not any(b["brand"] == e["brand"] and b["box"] == e["box"]
+                      for b in lab["boxes"]):
+                lab["boxes"].append(new_box)
+                added += 1
         else:
             continue
+        applied_reviews.append(r)
         json.dump(lab, open(lp, "w"), indent=1)
-    print(f"applied reviews: +{added} boxes, -{removed} boxes; re-run: python -m bench score")
+    if applied_reviews:
+        app_path = os.path.join(root, "data", "reviews.applied.json")
+        existing = []
+        if os.path.exists(app_path):
+            existing = json.load(open(app_path))
+        existing.extend(applied_reviews)
+        json.dump(existing, open(app_path, "w"), indent=1)
+        os.remove(rp)
+    print(f"applied reviews: +{added} boxes, -{removed} boxes; archived to reviews.applied.json; re-run: python -m bench score")
 
 
 def build_report(root):
@@ -97,6 +115,11 @@ def build_report(root):
     print(f"wrote {out} and {len(entries)} gallery entries")
 
 
+def _fmt(v):
+    """Format metric value: None becomes '-', otherwise use value as-is."""
+    return "-" if v is None else v
+
+
 def _svg_curve(rung_scores):
     rungs = sorted((int(r) for r in rung_scores), reverse=True)
     if len(rungs) < 2:
@@ -125,15 +148,33 @@ def _render_html(scores, entries):
                                   if not k.startswith("_"))
             rows.append(
                 f"<tr><td>{html.escape(model)}</td><td>{rung}</td>"
-                f"<td>{rs['presence']['_macro_f1']}</td>"
-                f"<td title='{html.escape(per_brand)}'>{b['hit03']}</td>"
-                f"<td>{b['hit05']}</td><td>{b['mean_iou']}</td>"
-                f"<td>{a['size_acc']}</td><td>{a['placement_acc']}</td>"
-                f"<td>{o['cost_per_frame']}</td><td>{o['lat_p50']}</td>"
-                f"<td>{o['parse_fail_rate']}</td></tr>")
+                f"<td>{_fmt(rs['presence']['_macro_f1'])}</td>"
+                f"<td title='{html.escape(per_brand)}'>{_fmt(b['hit03'])}</td>"
+                f"<td>{_fmt(b['hit05'])}</td><td>{_fmt(b['mean_iou'])}</td>"
+                f"<td>{_fmt(a['size_acc'])}</td><td>{_fmt(a['placement_acc'])}</td>"
+                f"<td>{_fmt(o['cost_per_frame'])}</td><td>{_fmt(o['lat_p50'])}</td>"
+                f"<td>{_fmt(o['parse_fail_rate'])}</td></tr>")
     curves = "".join(
         f'<div class="curve"><h3>{html.escape(m)}</h3>{_svg_curve(s["rungs"])}</div>'
         for m, s in sorted(scores["models"].items()))
+    details_sections = []
+    for model, s in sorted(scores["models"].items()):
+        detail_rows = []
+        for rung, rs in s["rungs"].items():
+            for brand, v in sorted(rs["presence"].items()):
+                if not brand.startswith("_"):
+                    detail_rows.append(
+                        f"<tr><td>{html.escape(brand)}</td><td>{_fmt(v.get('p'))}</td>"
+                        f"<td>{_fmt(v.get('r'))}</td><td>{_fmt(v.get('f1'))}</td></tr>")
+        if detail_rows:
+            details_sections.append(
+                f'<details><summary>{html.escape(model)} per-brand F1</summary>'
+                f'<table style="margin:8px 0;border-collapse:collapse"><thead><tr>'
+                f'<th style="border:1px solid #333;padding:4px 8px;text-align:left">brand</th>'
+                f'<th style="border:1px solid #333;padding:4px 8px">precision</th>'
+                f'<th style="border:1px solid #333;padding:4px 8px">recall</th>'
+                f'<th style="border:1px solid #333;padding:4px 8px">f1</th></tr></thead>'
+                f'<tbody>{"".join(detail_rows)}</tbody></table></details>')
     gallery = "".join(
         f'<figure><img src="{html.escape(e["img"])}" loading="lazy">'
         f'<figcaption>{html.escape(e["model"])}: {e["kind"]} '
@@ -157,6 +198,7 @@ verdicts on disagreements.</p>
 <th>hit@0.3</th><th>hit@0.5</th><th>mean IoU</th><th>size acc</th>
 <th>placement acc</th><th>$/frame</th><th>lat p50</th><th>parse fail</th></tr>
 </thead><tbody>{"".join(rows)}</tbody></table>
+<h2>Per-brand F1 by model</h2>{"".join(details_sections)}
 <h2>Presence F1 by resolution</h2><div class="curves">{curves}</div>
 <h2>Disagreement gallery ({len(entries)} entries)</h2>{gallery}
 <script>
