@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Logo labeling</title>
+<style>
+  body { margin: 0; font: 14px system-ui, sans-serif; background: #111; color: #eee; }
+  #bar { padding: 8px 12px; background: #1b1b1b; display: flex; gap: 12px;
+         align-items: center; flex-wrap: wrap; position: sticky; top: 0; }
+  #bar select, #bar button { font: inherit; background: #2a2a2a; color: #eee;
+         border: 1px solid #444; border-radius: 4px; padding: 4px 8px; }
+  #bar button.primary { background: #2563eb; border-color: #2563eb; }
+  #stage { position: relative; margin: 12px auto; width: fit-content; }
+  #img { display: block; max-width: 96vw; max-height: 82vh; }
+  #cv { position: absolute; left: 0; top: 0; cursor: crosshair; }
+  #meta { text-align: center; color: #999; padding-bottom: 20px; }
+  kbd { background: #333; border-radius: 3px; padding: 0 4px; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <span id="pos"></span>
+  <label>brand <select id="brand"></select></label>
+  <label>size <select id="size">
+    <option>small</option><option>medium</option><option>large</option></select></label>
+  <label>placement <select id="placement">
+    <option>foreground</option><option>background</option></select></label>
+  <label>location <select id="location">
+    <option>chest</option><option>sleeve</option><option>shorts</option>
+    <option>headwear</option><option>board</option><option>backdrop</option>
+    <option>other</option></select></label>
+  <button id="del">delete selected (Backspace)</button>
+  <button id="prev">prev (P)</button>
+  <button id="next" class="primary">done, next (N)</button>
+  <span id="status"></span>
+</div>
+<div id="stage"><img id="img"><canvas id="cv"></canvas></div>
+<div id="meta">Drag to draw a box. Click a box to select it, then change its fields
+  in the toolbar or delete it. <kbd>1</kbd>-<kbd>9</kbd> pick the brand.
+  Frames with no logos: just press <kbd>N</kbd>.</div>
+<script>
+let manifest = [], idx = 0, boxes = [], selected = -1, brands = [];
+let drag = null, dirty = false;
+const img = document.getElementById('img'), cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+
+async function init() {
+  manifest = (await (await fetch('/api/manifest')).json()).images;
+  // brand list comes from a brands.json the CLI writes next to the manifest,
+  // falling back to the union of brands seen in existing labels
+  try { brands = await (await fetch('/data/brands.json')).json(); }
+  catch (e) { brands = []; }
+  if (!brands.length) brands = ['adidas','stripes','dkh','11teamsports','delay'];
+  $('brand').innerHTML = brands.map(b => `<option>${b}</option>`).join('');
+  idx = +(localStorage.getItem('label_idx') || 0);
+  await load();
+}
+
+async function load() {
+  idx = Math.max(0, Math.min(idx, manifest.length - 1));
+  localStorage.setItem('label_idx', idx);
+  const m = manifest[idx];
+  const lab = await (await fetch('/api/labels/' + m.id)).json();
+  boxes = lab.boxes || []; selected = -1; dirty = false;
+  img.onload = () => { sync(); draw(); };
+  img.src = '/data/images/' + m.id;
+  $('pos').textContent = `${idx + 1}/${manifest.length}  ${m.id}` +
+                         (lab.done ? ' (done)' : '');
+}
+
+function sync() {
+  cv.width = img.clientWidth; cv.height = img.clientHeight;
+}
+
+function px(box) { // 0-1000 -> canvas px
+  return [box[0] / 1000 * cv.width, box[1] / 1000 * cv.height,
+          box[2] / 1000 * cv.width, box[3] / 1000 * cv.height];
+}
+
+function draw() {
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  boxes.forEach((b, i) => {
+    const [x0, y0, x1, y1] = px(b.box);
+    ctx.lineWidth = i === selected ? 3 : 2;
+    ctx.strokeStyle = i === selected ? '#fbbf24' : '#22c55e';
+    ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+    ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.font = '12px system-ui';
+    const tag = `${b.brand} ${b.size[0]}/${b.placement[0]}/${b.location}`;
+    ctx.fillRect(x0, Math.max(0, y0 - 16), ctx.measureText(tag).width + 8, 16);
+    ctx.fillStyle = i === selected ? '#fbbf24' : '#22c55e';
+    ctx.fillText(tag, x0 + 4, Math.max(12, y0 - 4));
+  });
+  if (drag) {
+    ctx.strokeStyle = '#f87171'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(drag.x0, drag.y0, drag.x1 - drag.x0, drag.y1 - drag.y0);
+  }
+}
+
+async function save(done) {
+  const m = manifest[idx];
+  await fetch('/api/labels/' + m.id, { method: 'POST',
+    body: JSON.stringify({ image: m.id, labeler: 'leon', boxes, done: !!done }) });
+  dirty = false;
+  $('status').textContent = 'saved ' + new Date().toLocaleTimeString();
+}
+
+cv.addEventListener('mousedown', e => {
+  const r = cv.getBoundingClientRect();
+  const x = e.clientX - r.left, y = e.clientY - r.top;
+  const hit = boxes.findIndex(b => {
+    const [x0, y0, x1, y1] = px(b.box);
+    return x >= x0 && x <= x1 && y >= y0 && y <= y1;
+  });
+  if (hit >= 0 && !e.shiftKey) {
+    selected = hit;
+    const b = boxes[hit];
+    $('brand').value = b.brand; $('size').value = b.size;
+    $('placement').value = b.placement; $('location').value = b.location;
+    draw(); return;
+  }
+  drag = { x0: x, y0: y, x1: x, y1: y };
+});
+cv.addEventListener('mousemove', e => {
+  if (!drag) return;
+  const r = cv.getBoundingClientRect();
+  drag.x1 = e.clientX - r.left; drag.y1 = e.clientY - r.top; draw();
+});
+cv.addEventListener('mouseup', () => {
+  if (!drag) return;
+  const [a, b] = [Math.min(drag.x0, drag.x1), Math.min(drag.y0, drag.y1)];
+  const [c, d] = [Math.max(drag.x0, drag.x1), Math.max(drag.y0, drag.y1)];
+  drag = null;
+  if (c - a > 4 && d - b > 4) {
+    boxes.push({ brand: $('brand').value, size: $('size').value,
+      placement: $('placement').value, location: $('location').value,
+      box: [Math.round(a / cv.width * 1000), Math.round(b / cv.height * 1000),
+            Math.round(c / cv.width * 1000), Math.round(d / cv.height * 1000)] });
+    selected = boxes.length - 1; dirty = true; save(false);
+  }
+  draw();
+});
+['brand', 'size', 'placement', 'location'].forEach(f =>
+  $(f).addEventListener('change', () => {
+    if (selected >= 0) {
+      boxes[selected][f === 'brand' ? 'brand' : f] = $(f).value;
+      dirty = true; save(false); draw();
+    }
+  }));
+$('del').onclick = () => {
+  if (selected >= 0) { boxes.splice(selected, 1); selected = -1; save(false); draw(); }
+};
+$('next').onclick = async () => { await save(true); idx++; load(); };
+$('prev').onclick = async () => { if (dirty) await save(false); idx--; load(); };
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'SELECT') return;
+  if (e.key === 'n' || e.key === 'N') $('next').click();
+  if (e.key === 'p' || e.key === 'P') $('prev').click();
+  if (e.key === 'Backspace') { e.preventDefault(); $('del').click(); }
+  if (e.key >= '1' && e.key <= String(Math.min(9, brands.length)))
+    $('brand').value = brands[+e.key - 1];
+});
+window.addEventListener('resize', () => { sync(); draw(); });
+init();
+</script>
+</body>
+</html>
