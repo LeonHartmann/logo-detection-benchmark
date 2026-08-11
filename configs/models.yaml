@@ -44,3 +44,4 @@ models:
   - {name: seed-2.0-mini+perbrand,    provider: openrouter, model: bytedance-seed/seed-2.0-mini, enabled: true, refs: true, per_brand: true, price_in: 0.1,  price_out: 0.4}
   - {name: qwen3-vl-plus+perbrand,    provider: dashscope,  model: qwen3-vl-plus,                enabled: true, refs: true, per_brand: true, price_in: 0.21, price_out: 0.63}
   - {name: gemini-3.6-flash+perbrand, provider: openrouter, model: google/gemini-3.6-flash,      enabled: true, refs: true, per_brand: true, price_in: 1.5,  price_out: 7.5}
+  - {name: gpt-5.6-terra+refs,       provider: openai,     model: gpt-5.6-terra,                enabled: true, refs: true, price_in: 1.0,  price_out: 6.0}
