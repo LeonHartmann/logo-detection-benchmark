@@ -49,9 +49,15 @@ function show() {
 async function verdict(v) {
   if (busy) return;
   busy = true;
-  await fetch('/api/review', { method: 'POST',
-    body: JSON.stringify({ entry: entries[idx], verdict: v }) });
-  idx++; show(); busy = false;
+  try {
+    await fetch('/api/review', { method: 'POST',
+      body: JSON.stringify({ entry: entries[idx], verdict: v }) });
+    idx++; show();
+  } catch (err) {
+    $('cap').textContent = 'Save failed, retry: ' + err.message;
+  } finally {
+    busy = false;
+  }
 }
 $('right').onclick = () => verdict('model_right');
 $('wrong').onclick = () => verdict('truth_wrong');

@@ -45,41 +45,41 @@ def apply_reviews(root):
         print("no reviews.json")
         return
     added = removed = 0
-    applied_reviews = []
-    for r in json.load(open(rp)):
+    all_reviews_with_status = []
+    all_reviews = json.load(open(rp))
+    for r in all_reviews:
         e, verdict = r.get("entry", {}), r.get("verdict")
         image_id = e.get("image", "")
-        if not SAFE_ID.match(image_id):
-            continue
-        lp = os.path.join(root, "data", "labels", image_id + ".json")
-        if not os.path.exists(lp):
-            continue
-        lab = json.load(open(lp))
-        if verdict == "truth_wrong" and e.get("kind") == "truth_missed":
-            n0 = len(lab["boxes"])
-            lab["boxes"] = [b for b in lab["boxes"]
-                            if not (b["brand"] == e["brand"] and b["box"] == e["box"])]
-            removed += n0 - len(lab["boxes"])
-        elif verdict == "model_right" and e.get("kind") == "model_extra":
-            new_box = {"brand": e["brand"], "box": e["box"], "size": "small",
-                       "placement": "foreground", "location": "other",
-                       "from_review": True}
-            if not any(b["brand"] == e["brand"] and b["box"] == e["box"]
-                      for b in lab["boxes"]):
-                lab["boxes"].append(new_box)
-                added += 1
-        else:
-            continue
-        applied_reviews.append(r)
-        json.dump(lab, open(lp, "w"), indent=1)
-    if applied_reviews:
-        app_path = os.path.join(root, "data", "reviews.applied.json")
-        existing = []
-        if os.path.exists(app_path):
-            existing = json.load(open(app_path))
-        existing.extend(applied_reviews)
-        json.dump(existing, open(app_path, "w"), indent=1)
-        os.remove(rp)
+        was_applied = False
+        if SAFE_ID.match(image_id):
+            lp = os.path.join(root, "data", "labels", image_id + ".json")
+            if os.path.exists(lp):
+                lab = json.load(open(lp))
+                if verdict == "truth_wrong" and e.get("kind") == "truth_missed":
+                    n0 = len(lab["boxes"])
+                    lab["boxes"] = [b for b in lab["boxes"]
+                                    if not (b["brand"] == e["brand"] and b["box"] == e["box"])]
+                    removed += n0 - len(lab["boxes"])
+                    was_applied = True
+                elif verdict == "model_right" and e.get("kind") == "model_extra":
+                    new_box = {"brand": e["brand"], "box": e["box"], "size": "small",
+                               "placement": "foreground", "location": "other",
+                               "from_review": True}
+                    if not any(b["brand"] == e["brand"] and b["box"] == e["box"]
+                              for b in lab["boxes"]):
+                        lab["boxes"].append(new_box)
+                        added += 1
+                    was_applied = True
+                if was_applied:
+                    json.dump(lab, open(lp, "w"), indent=1)
+        all_reviews_with_status.append({**r, "applied": was_applied})
+    app_path = os.path.join(root, "data", "reviews.applied.json")
+    existing = []
+    if os.path.exists(app_path):
+        existing = json.load(open(app_path))
+    existing.extend(all_reviews_with_status)
+    json.dump(existing, open(app_path, "w"), indent=1)
+    os.remove(rp)
     print(f"applied reviews: +{added} boxes, -{removed} boxes; archived to reviews.applied.json; re-run: python -m bench score")
 
 
@@ -144,7 +144,7 @@ def _render_html(scores, entries):
     for model, s in sorted(scores["models"].items()):
         for rung, rs in s["rungs"].items():
             o, b, a = rs["ops"], rs["boxes"], rs["attrs"]
-            per_brand = ", ".join(f'{k} {v["f1"]}' for k, v in rs["presence"].items()
+            per_brand = ", ".join(f'{k} {_fmt(v["f1"])}' for k, v in rs["presence"].items()
                                   if not k.startswith("_"))
             rows.append(
                 f"<tr><td>{html.escape(model)}</td><td>{rung}</td>"
@@ -164,13 +164,14 @@ def _render_html(scores, entries):
             for brand, v in sorted(rs["presence"].items()):
                 if not brand.startswith("_"):
                     detail_rows.append(
-                        f"<tr><td>{html.escape(brand)}</td><td>{_fmt(v.get('p'))}</td>"
+                        f"<tr><td>{html.escape(brand)}</td><td>{rung}</td><td>{_fmt(v.get('p'))}</td>"
                         f"<td>{_fmt(v.get('r'))}</td><td>{_fmt(v.get('f1'))}</td></tr>")
         if detail_rows:
             details_sections.append(
                 f'<details><summary>{html.escape(model)} per-brand F1</summary>'
                 f'<table style="margin:8px 0;border-collapse:collapse"><thead><tr>'
                 f'<th style="border:1px solid #333;padding:4px 8px;text-align:left">brand</th>'
+                f'<th style="border:1px solid #333;padding:4px 8px;text-align:left">rung</th>'
                 f'<th style="border:1px solid #333;padding:4px 8px">precision</th>'
                 f'<th style="border:1px solid #333;padding:4px 8px">recall</th>'
                 f'<th style="border:1px solid #333;padding:4px 8px">f1</th></tr></thead>'

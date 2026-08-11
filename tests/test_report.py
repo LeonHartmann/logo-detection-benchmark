@@ -54,6 +54,13 @@ def test_apply_reviews_edits_labels(tmp_path):
     brands = [b["brand"] for b in lab["boxes"]]
     assert brands == ["adidas"]                     # delay removed, adidas added
     assert lab["boxes"][0]["from_review"] is True
+    applied_path = tmp_path / "data" / "reviews.applied.json"
+    assert applied_path.exists()
+    applied = json.load(open(applied_path))
+    assert len(applied) == 3                        # all 3 entries archived
+    assert applied[0]["applied"] is True            # truth_wrong applied
+    assert applied[1]["applied"] is True            # model_right applied
+    assert applied[2]["applied"] is False           # both_wrong not applied
 
 
 def test_apply_reviews_idempotent(tmp_path):
