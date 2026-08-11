@@ -86,15 +86,15 @@ def prelabel(models, bench, brands, manifest, root, model_name=None, rung=None,
 
     for img in images:
         label_path = _label_path(root, img["id"])
-        reason = _skip_reason(label_path)
-        if reason:
-            print(f"skip {img['id']}: {reason}")
-            stats["skipped"] += 1
-            continue
-
-        target_rung = rung if rung is not None else max(
-            rungs_for(img["native"][1], bench["rungs"]))
         try:
+            reason = _skip_reason(label_path)
+            if reason:
+                print(f"skip {img['id']}: {reason}")
+                stats["skipped"] += 1
+                continue
+
+            target_rung = rung if rung is not None else max(
+                rungs_for(img["native"][1], bench["rungs"]))
             with open(os.path.join(rungs_dir, str(target_rung), img["id"]), "rb") as f:
                 target_bytes = f.read()
             payload = ref_bytes + [target_bytes]
@@ -125,7 +125,8 @@ def prelabel(models, bench, brands, manifest, root, model_name=None, rung=None,
                      open(label_path, "w"), indent=1)
             stats["processed"] += 1
         except Exception as e:
-            print(f"WARNING: prelabel failed for {img['id']}: {type(e).__name__}: {e}")
+            print(f"WARNING: prelabel failed for {img['id']} ({label_path}): "
+                 f"{type(e).__name__}: {e}")
             stats["failed"] += 1
 
     return stats

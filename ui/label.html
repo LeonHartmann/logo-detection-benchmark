@@ -43,7 +43,7 @@
   <kbd>Backspace</kbd> to reject a selected one.</div>
 <script>
 let manifest = [], idx = 0, boxes = [], selected = -1, brands = [];
-let drag = null, dirty = false, doneState = false;
+let drag = null, dirty = false, doneState = false, prelabeledBy = null;
 const img = document.getElementById('img'), cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
 const $ = id => document.getElementById(id);
@@ -70,6 +70,8 @@ async function load() {
   const m = manifest[idx];
   const lab = await (await fetch('/api/labels/' + m.id)).json();
   boxes = lab.boxes || []; selected = -1; dirty = false; doneState = !!lab.done;
+  prelabeledBy = lab.prelabeled_by || (typeof lab.labeler === 'string' &&
+    lab.labeler.startsWith('prelabel:') ? lab.labeler.slice('prelabel:'.length) : null);
   img.onload = () => { sync(); draw(); };
   img.src = '/data/images/' + m.id;
   $('pos').textContent = `${idx + 1}/${manifest.length}  ${m.id}` +
@@ -112,7 +114,8 @@ function draw() {
 async function save(done) {
   const m = manifest[idx];
   await fetch('/api/labels/' + m.id, { method: 'POST',
-    body: JSON.stringify({ image: m.id, labeler: 'leon', boxes, done: !!done }) });
+    body: JSON.stringify({ image: m.id, labeler: 'leon', boxes, done: !!done,
+      ...(prelabeledBy ? { prelabeled_by: prelabeledBy } : {}) }) });
   dirty = false;
   $('status').textContent = 'saved ' + new Date().toLocaleTimeString();
 }

@@ -100,10 +100,13 @@ into the truth set wherever you accept a suggestion instead of redrawing
 it, which can flatter that same model's IoU scores relative to the others
 being benchmarked. Review every box rather than mass-accepting. As a
 provenance marker, `bench prelabel` writes `"labeler": "prelabel:<model>"`
-into each file it touches; that value survives only until the file is next
-saved from the labeling UI (which happens on your first edit, or the next
-`N`), so treat it as a way to spot which images still carry an unreviewed
-machine pass, not as a permanent audit trail.
+into each file it touches. The first time you save that frame from the
+labeling UI (an edit, a rejection, or just pressing `N`), `labeler` reverts
+to your own name as usual, but the file also gains a `"prelabeled_by":
+"<model>"` field that the UI keeps carrying forward on every later save,
+including once the frame is marked done. Provenance survives human saves
+through that field, so you can always tell which images in a finished
+truth set started from a machine pass.
 
 ## Use your own brands
 

@@ -99,18 +99,26 @@ def test_skip_policy_preserves_human_work_and_refreshes_pure_suggestions(tmp_pat
 
 
 def test_per_image_failure_does_not_abort_run(tmp_path, capsys):
-    manifest = setup_repo(tmp_path, n_images=2)
+    manifest = setup_repo(tmp_path, n_images=3)
+    # img1 has a corrupt label file, as if a previous prelabel run was
+    # interrupted mid-write; this must be caught per-image, not raised.
+    corrupt = "not valid json at all {{{"
+    (tmp_path / "data" / "labels" / "img1.jpg.json").write_text(corrupt)
+
     models = [ModelCfg("qwen3-vl-plus", "fake", "fake-1")]
-    # img0 fails both tries; img1 succeeds on its first call.
+    # img0 fails both API tries; img1 fails on its corrupt label file
+    # (no API call reached); img2 succeeds on its first call.
     fp = FakeProvider([RuntimeError("boom"), RuntimeError("boom"), GOOD])
     stats = pl.prelabel(models, BENCH, BRANDS, manifest, str(tmp_path),
                         provider_factory=lambda m, b: fp, backoff_base=0)
 
-    assert stats["processed"] == 1 and stats["failed"] == 1 and stats["skipped"] == 0
+    assert stats["processed"] == 1 and stats["failed"] == 2 and stats["skipped"] == 0
     assert not (tmp_path / "data" / "labels" / "img0.jpg.json").exists()
-    assert (tmp_path / "data" / "labels" / "img1.jpg.json").exists()
+    assert (tmp_path / "data" / "labels" / "img2.jpg.json").exists()
+    # the corrupt file is left exactly as it was: not overwritten, not deleted
+    assert (tmp_path / "data" / "labels" / "img1.jpg.json").read_text() == corrupt
     out = capsys.readouterr().out
-    assert "img0.jpg" in out and "WARNING" in out
+    assert "img0.jpg" in out and "img1.jpg" in out and out.count("WARNING") == 2
 
 
 def test_pick_model_defaults_and_errors_with_available_names():
