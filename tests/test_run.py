@@ -1,5 +1,7 @@
 import json
 import os
+import threading
+import time
 from PIL import Image
 import bench.run as rn
 from bench.config import ModelCfg
@@ -81,3 +83,74 @@ def test_api_error_is_recorded_after_retries(tmp_path):
             open(tmp_path / "results" / "raw" / "fake-model.jsonl")]
     assert len(rows) == 1 and rows[0]["error"] and rows[0]["detections"] is None
     assert stats["failed"] == 1
+
+
+def test_concurrency_cap_is_enforced(tmp_path):
+    """Verify the per-provider concurrency semaphore is actually enforced."""
+    manifest = setup_repo(tmp_path, n_images=3)
+    models = [ModelCfg("fake-model", "fake", "fake-1")]
+
+    class ConcurrencyTrackingProvider:
+        provider_key = "fake"
+        def __init__(self):
+            self.lock = threading.Lock()
+            self.in_flight = 0
+            self.max_in_flight = 0
+        def call(self, text, images):
+            with self.lock:
+                self.in_flight += 1
+                self.max_in_flight = max(self.max_in_flight, self.in_flight)
+            try:
+                time.sleep(0.01)  # brief hold to observe concurrency
+                return CallResult(GOOD, 100, 10, 0.01)
+            finally:
+                with self.lock:
+                    self.in_flight -= 1
+
+    cp = ConcurrencyTrackingProvider()
+    bench_cfg = {**BENCH, "concurrency": {"fake": 2}}
+    stats = rn.run_benchmark(models, bench_cfg, BRANDS, manifest, str(tmp_path),
+                             provider_factory=lambda m, b: cp)
+    rows = [json.loads(l) for l in open(tmp_path / "results" / "raw" / "fake-model.jsonl")]
+    assert len(rows) == 6  # 3 images x 2 rungs
+    assert stats["done"] == 6
+    assert cp.max_in_flight <= 2, f"max_in_flight {cp.max_in_flight} exceeds cap of 2"
+
+
+def test_worker_file_error_doesnt_crash_run(tmp_path, monkeypatch):
+    """Verify that worker-level failures (e.g., missing file) are caught and recorded."""
+    import builtins
+    manifest = setup_repo(tmp_path, n_images=2)
+    models = [ModelCfg("fake-model", "fake", "fake-1")]
+    fp = FakeProvider([])
+
+    original_open = builtins.open
+    rung_read_calls = [0]
+
+    def patched_open(file, *args, **kwargs):
+        # Only fail when reading rung files (from data/rungs directory with "rb" mode)
+        # Not during derive (which reads from data/images)
+        if (len(args) > 0 and args[0] == "rb" and
+            "/data/rungs/" in str(file) and "img0.jpg" in str(file)):
+            rung_read_calls[0] += 1
+            if rung_read_calls[0] == 1:
+                raise FileNotFoundError(f"[Errno 2] No such file or directory: {file}")
+        return original_open(file, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", patched_open)
+
+    stats = rn.run_benchmark(models, BENCH, BRANDS, manifest, str(tmp_path),
+                             provider_factory=lambda m, b: fp)
+    rows = [json.loads(l) for l in original_open(tmp_path / "results" / "raw" / "fake-model.jsonl")]
+
+    # Should have 4 rows total (2 images x 2 rungs), with at least 1 error
+    assert len(rows) == 4
+    assert stats["failed"] >= 1
+    assert stats["done"] + stats["failed"] == 4
+
+    # The failed row should have an error message and no detections
+    failed_rows = [r for r in rows if r["error"] is not None]
+    assert len(failed_rows) >= 1
+    for row in failed_rows:
+        assert row["detections"] is None
+        assert "FileNotFoundError" in row["error"] or "No such file" in row["error"]

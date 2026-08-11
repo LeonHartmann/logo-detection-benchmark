@@ -77,31 +77,34 @@ def run_benchmark(models, bench, brands, manifest, root, only_models=None,
     def worker(item):
         m, img, rung = item
         prov = m._prov
-        with open(os.path.join(root, "data", "rungs", str(rung), img["id"]), "rb") as f:
-            target = f.read()
-        payload = ref_bytes + [target]
         row = {"image": img["id"], "rung": rung, "model": m.name, "detections": None,
                "parse_ok": False, "retried": False, "latency_s": 0.0,
                "input_tokens": 0, "output_tokens": 0, "error": None,
                "ts": datetime.datetime.now(datetime.timezone.utc).isoformat()}
-        with sems[prov.provider_key]:
-            res, err = attempt(prov, prompt, payload)
-            if res is not None:
-                dets = parse_detections(res.text)
-                if dets is None:  # one re-ask with the bare-JSON reminder, recorded
-                    row["retried"] = True
-                    res2, err2 = attempt(prov, prompt + RETRY_SUFFIX, payload)
-                    if res2 is not None:
-                        dets = parse_detections(res2.text)
-                        res = res2
-                    err = err2
-                row.update(latency_s=round(res.latency_s, 3),
-                           input_tokens=res.input_tokens,
-                           output_tokens=res.output_tokens)
-                if dets is not None:
-                    row.update(detections=dets, parse_ok=True)
-            if err and row["detections"] is None:
-                row["error"] = err
+        try:
+            with open(os.path.join(root, "data", "rungs", str(rung), img["id"]), "rb") as f:
+                target = f.read()
+            payload = ref_bytes + [target]
+            with sems[prov.provider_key]:
+                res, err = attempt(prov, prompt, payload)
+                if res is not None:
+                    dets = parse_detections(res.text)
+                    if dets is None:  # one re-ask with the bare-JSON reminder, recorded
+                        row["retried"] = True
+                        res2, err2 = attempt(prov, prompt + RETRY_SUFFIX, payload)
+                        if res2 is not None:
+                            dets = parse_detections(res2.text)
+                            res = res2
+                        err = err2
+                    row.update(latency_s=round(res.latency_s, 3),
+                               input_tokens=res.input_tokens,
+                               output_tokens=res.output_tokens)
+                    if dets is not None:
+                        row.update(detections=dets, parse_ok=True)
+                if err and row["detections"] is None:
+                    row["error"] = err
+        except Exception as e:
+            row["error"] = f"{type(e).__name__}: {e}"
         with lock:
             files[m.name].write(json.dumps(row) + "\n")
             files[m.name].flush()
@@ -110,10 +113,12 @@ def run_benchmark(models, bench, brands, manifest, root, only_models=None,
             if n % 25 == 0:
                 print(f"  {n}/{len(work)} calls done")
 
-    if work:
-        with ThreadPoolExecutor(max_workers=sum(
-                bench["concurrency"].get(k, 4) for k in sems)) as ex:
-            list(ex.map(worker, work))
-    for f in files.values():
-        f.close()
+    try:
+        if work:
+            with ThreadPoolExecutor(max_workers=sum(
+                    bench["concurrency"].get(k, 4) for k in sems)) as ex:
+                list(ex.map(worker, work))
+    finally:
+        for f in files.values():
+            f.close()
     return stats
