@@ -194,3 +194,18 @@ def test_adapter_non_2xx_raises_http_error(monkeypatch):
     p = pv.make_provider(ModelCfg("gpt-5.6-terra", "openai", "gpt-5.6-terra"), BENCH)
     with pytest.raises(Exception):  # requests.HTTPError is the base exception
         p.call("find logos", [b"\xff\xd8fakejpeg"])
+
+
+def test_parse_detections_repairs_missing_box_bracket():
+    # Real-world qwen3-vl-plus malformation: dropped "[" after "box":
+    raw = ('{"detections":[{"brand":"adidas","box":[412,786,449,905],"size":"small",'
+           '"placement":"foreground","location":"chest","conf":3},'
+           '{"brand":"stripes","box":119,442,321,865],"size":"large",'
+           '"placement":"foreground","location":"sleeve","conf":3}]}')
+    dets = pv.parse_detections(raw)
+    assert dets is not None and len(dets) == 2
+    assert dets[1]["box"] == [119, 442, 321, 865]
+
+
+def test_parse_detections_still_rejects_unrepairable():
+    assert pv.parse_detections('{"detections":[{"brand":"a","box":12,34') is None

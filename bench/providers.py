@@ -3,6 +3,7 @@ one Anthropic adapter, plus tolerant parsing of the detection JSON contract."""
 import base64
 import json
 import os
+import re
 import time
 from dataclasses import dataclass
 
@@ -118,36 +119,47 @@ def make_provider(mcfg, bench):
     raise ValueError(f"unknown provider {mcfg.provider!r}")
 
 
+def _repair_json(text):
+    # One observed model malformation is unambiguous in this schema and safe
+    # to repair uniformly for every model: a dropped "[" directly after
+    # "box":  (e.g. '"box":119,442,321,865]'). Anything still invalid after
+    # the repair remains a parse failure.
+    return re.sub(r'("box"\s*:\s*)(\d)', r"\1[\2", text)
+
+
+def _extract_detections(text):
+    """The raw detections list from model text, or None."""
+    # Try parsing the whole text first (e.g., bare JSON with whitespace)
+    try:
+        obj = json.loads(text.strip())
+        if isinstance(obj, dict) and isinstance(obj.get("detections"), list):
+            return obj["detections"]
+    except json.JSONDecodeError:
+        pass
+
+    # If that failed, iterate over all "{" positions to find the JSON object
+    decoder = json.JSONDecoder()
+    for i, char in enumerate(text):
+        if char == "{":
+            try:
+                obj, _ = decoder.raw_decode(text[i:])
+                if isinstance(obj, dict) and isinstance(obj.get("detections"), list):
+                    return obj["detections"]
+            except json.JSONDecodeError:
+                pass
+    return None
+
+
 def parse_detections(text):
     """Extract and normalize the detections list; None when unparseable."""
     if not text:
         return None
 
-    # Try parsing the whole text first (e.g., bare JSON with whitespace)
-    try:
-        obj = json.loads(text.strip())
-        if isinstance(obj, dict) and isinstance(obj.get("detections"), list):
-            dets = obj["detections"]
-        else:
-            obj = None
-    except json.JSONDecodeError:
-        obj = None
-
-    # If that failed, iterate over all "{" positions to find the JSON object
-    if obj is None:
-        decoder = json.JSONDecoder()
-        for i, char in enumerate(text):
-            if char == "{":
-                try:
-                    obj, end_idx = decoder.raw_decode(text[i:])
-                    if isinstance(obj, dict) and isinstance(obj.get("detections"), list):
-                        dets = obj["detections"]
-                        break
-                    obj = None
-                except json.JSONDecodeError:
-                    obj = None
-        if obj is None:
-            return None
+    dets = _extract_detections(text)
+    if dets is None:
+        dets = _extract_detections(_repair_json(text))
+    if dets is None:
+        return None
 
     out = []
     for d in dets:
