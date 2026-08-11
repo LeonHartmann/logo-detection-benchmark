@@ -27,6 +27,11 @@ def make_server(root, port):
         def log_message(self, *a):
             pass
 
+        def end_headers(self):
+            # labeling UI iterates fast; stale cached JS must never win
+            self.send_header("Cache-Control", "no-store")
+            super().end_headers()
+
         def _json(self, obj, code=200):
             body = json.dumps(obj).encode()
             self.send_response(code)
