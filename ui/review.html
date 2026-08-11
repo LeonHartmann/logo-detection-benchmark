@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Disagreement review</title>
+<style>
+  body { margin: 0; font: 14px system-ui; background: #111; color: #eee; }
+  #bar { padding: 10px; background: #1b1b1b; position: sticky; top: 0;
+         display: flex; gap: 10px; align-items: center; }
+  button { font: inherit; padding: 6px 14px; border-radius: 4px;
+           border: 1px solid #444; background: #2a2a2a; color: #eee; cursor: pointer; }
+  #right { background: #16a34a; border-color: #16a34a; }
+  #wrong { background: #dc2626; border-color: #dc2626; }
+  #stage { text-align: center; padding: 16px; }
+  img { max-width: 94vw; max-height: 78vh; }
+  .cap { color: #aaa; margin: 8px; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <span id="pos"></span>
+  <button id="right">model right (R): add to truth</button>
+  <button id="wrong">truth wrong (W): remove from truth</button>
+  <button id="both">both wrong (B)</button>
+  <button id="skip">skip (S)</button>
+</div>
+<div id="stage"><div class="cap" id="cap"></div><img id="img"></div>
+<script>
+let entries = [], idx = 0;
+const $ = id => document.getElementById(id);
+async function init() {
+  entries = await (await fetch('/results/gallery/manifest.json')).json();
+  idx = +(localStorage.getItem('review_idx') || 0);
+  show();
+}
+function show() {
+  if (idx >= entries.length) {
+    $('cap').textContent = 'All ' + entries.length + ' entries reviewed. Run: ' +
+      'python -m bench apply-reviews, then python -m bench score';
+    $('img').src = ''; $('pos').textContent = 'done'; return;
+  }
+  const e = entries[idx];
+  localStorage.setItem('review_idx', idx);
+  $('pos').textContent = (idx + 1) + '/' + entries.length;
+  $('cap').textContent = e.model + ': ' + e.kind + ' (' + e.brand + ') on ' + e.image +
+    '. Green boxes are truth, red boxes are the model.';
+  $('img').src = '/results/' + e.img;
+}
+async function verdict(v) {
+  await fetch('/api/review', { method: 'POST',
+    body: JSON.stringify({ entry: entries[idx], verdict: v }) });
+  idx++; show();
+}
+$('right').onclick = () => verdict('model_right');
+$('wrong').onclick = () => verdict('truth_wrong');
+$('both').onclick = () => verdict('both_wrong');
+$('skip').onclick = () => verdict('skip');
+document.addEventListener('keydown', e => {
+  if (e.key === 'r') verdict('model_right');
+  if (e.key === 'w') verdict('truth_wrong');
+  if (e.key === 'b') verdict('both_wrong');
+  if (e.key === 's') verdict('skip');
+});
+init();
+</script>
+</body>
+</html>
