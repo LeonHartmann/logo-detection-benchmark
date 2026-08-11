@@ -46,13 +46,17 @@ const ctx = cv.getContext('2d');
 const $ = id => document.getElementById(id);
 
 async function init() {
-  manifest = (await (await fetch('/api/manifest')).json()).images;
-  // brand list comes from a brands.json the CLI writes next to the manifest,
-  // falling back to the union of brands seen in existing labels
+  // brand list comes from a brands.json the CLI writes next to the manifest
   try { brands = await (await fetch('/data/brands.json')).json(); }
   catch (e) { brands = []; }
-  if (!brands.length) brands = ['adidas','stripes','dkh','11teamsports','delay'];
+  if (!brands.length) {
+    $('meta').textContent = 'No brands found. Run: python -m bench ladder ' +
+      '(generates data/brands.json from your brands file), then reload.';
+    $('pos').textContent = '';
+    return;
+  }
   $('brand').innerHTML = brands.map(b => `<option>${b}</option>`).join('');
+  manifest = (await (await fetch('/api/manifest')).json()).images;
   idx = +(localStorage.getItem('label_idx') || 0);
   await load();
 }

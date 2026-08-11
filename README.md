@@ -53,11 +53,7 @@ scoring all work against any set of images and brands you supply.
    above. `stratum` is any short label you find useful for grouping results
    later (for example busy, normal, empty, small-logo); edit it by hand once
    you know what's in each image.
-6. Edit `brands/<yours>.yaml` (copy `brands/delay.yaml` as a starting point):
-   one entry per brand with `name`, a `description` used in the model
-   prompt, and an optional `refs` list of reference image paths for brands
-   that get confused with similar crests or wordmarks. Point
-   `configs/benchmark.yaml`'s `brands_file` at your new file.
+6. Set up your brands: see "Use your own brands" below.
 7. `python -m bench ladder`: derives the resolution rungs (from
    `configs/benchmark.yaml`, default 1080/720/480/240/144) for every image in
    the manifest.
@@ -73,6 +69,27 @@ scoring all work against any set of images and brands you supply.
 11. `python -m bench report`: builds `results/leaderboard.html` from the
     scores, including the disagreement gallery.
 12. Open `results/leaderboard.html` in a browser.
+
+## Use your own brands
+
+The bundled `brands/delay.yaml` covers five brands from the Delay Sports
+corpus, but the config, labeling UI, and scoring all work against any
+brands you supply:
+
+1. Create `brands/<yours>.yaml` (copy `brands/delay.yaml` as a starting
+   point): one entry per brand with `name`, a `description` used in the
+   model prompt, and an optional `refs` list of reference image paths
+   (relative to the repo root, typically placed under `data/refs/`) for
+   brands that get confused with similar crests or wordmarks.
+2. Point `configs/benchmark.yaml`'s `brands_file` at your new file.
+3. Re-run `python -m bench ladder` to regenerate `data/brands.json`, which
+   `ui/label.html` reads to populate the brand dropdown and the `1`-`9`
+   keyboard shortcuts. If `data/brands.json` is missing or empty, the
+   labeling UI refuses to load an image and tells you to run this command.
+
+Brand names should be lowercase: model output is matched against them
+casefolded, so write `name` in the yaml as lowercase to keep it consistent
+with what gets reported.
 
 ## The review loop
 
