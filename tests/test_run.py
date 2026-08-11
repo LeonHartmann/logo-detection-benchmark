@@ -342,3 +342,37 @@ def test_refs_model_skipped_when_no_refs_configured(tmp_path, capsys):
                              manifest, str(tmp_path), provider_factory=lambda m, b: fp)
     assert stats["done"] == 0 and fp.calls == 0
     assert "skipping refs-condition models" in capsys.readouterr().out
+
+
+def test_per_brand_condition_unions_focused_calls(tmp_path):
+    manifest = setup_repo(tmp_path, n_images=1)
+    brands2 = [{"name": "adidas", "description": "x", "refs": []},
+               {"name": "delay", "description": "y", "refs": []}]
+
+    class BrandProvider:
+        provider_key = "fake"
+        def __init__(self):
+            self.texts = []
+        def call(self, text, images):
+            self.texts.append(text)
+            if '"adidas"' in text:
+                # includes an off-brand detection that must be filtered out
+                return CallResult('{"detections":[{"brand":"adidas","box":[1,2,3,4]},'
+                                  '{"brand":"delay","box":[5,6,7,8]}]}', 100, 10, 0.01)
+            return CallResult('{"detections":[{"brand":"delay","box":[9,9,20,20]}]}',
+                              100, 10, 0.01)
+
+    fp = BrandProvider()
+    models = [ModelCfg("fake-pb", "fake", "fake-1", per_brand=True)]
+    stats = rn.run_benchmark(models, {**BENCH, "concurrency": {"fake": 1}}, brands2,
+                             manifest, str(tmp_path), only_rungs=[480],
+                             provider_factory=lambda m, b: fp)
+    rows = [json.loads(l) for l in open(tmp_path / "results" / "raw" / "fake-pb.jsonl")]
+    assert stats["done"] == 1 and rows[0]["parse_ok"]
+    dets = rows[0]["detections"]
+    # one adidas det (off-brand delay det from the adidas call filtered out),
+    # one delay det from the delay call
+    assert sorted(d["brand"] for d in dets) == ["adidas", "delay"]
+    assert rows[0]["input_tokens"] == 200 and rows[0]["output_tokens"] == 20
+    assert len(fp.texts) == 2
+    assert '"adidas"' in fp.texts[0] and '"delay"' not in fp.texts[0].split("Rules:")[0].split("instance")[1]

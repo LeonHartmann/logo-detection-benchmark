@@ -54,6 +54,43 @@ def _load_done(path):
     return done
 
 
+def _per_brand_worker(prov, brands, refs_by_brand, use_refs, target, row, attempt):
+    """One focused call per brand (optionally with only that brand's reference
+    images); detections are unioned. Tokens and latency accumulate; parse_ok
+    is true only if every per-brand call parsed."""
+    dets_all = []
+    in_tok = out_tok = 0
+    lat = 0.0
+    all_ok = True
+    for b in brands:
+        refs = refs_by_brand.get(b["name"], []) if use_refs else []
+        text = build_prompt([b], ref_labels=[lb for _, lb in refs])
+        payload = [bt for bt, _ in refs] + [target]
+        res, err = attempt(prov, text, payload)
+        if res is not None:
+            dets = parse_detections(res.text)
+            if dets is None:
+                row["retried"] = True
+                res2, err2 = attempt(prov, text + RETRY_SUFFIX, payload)
+                if res2 is not None:
+                    dets = parse_detections(res2.text)
+                    res = res2
+                err = err2
+        if res is None:
+            row["error"] = err
+            return
+        in_tok += res.input_tokens
+        out_tok += res.output_tokens
+        lat += res.latency_s
+        if dets is None:
+            all_ok = False
+        else:
+            dets_all.extend(d for d in dets if d["brand"] == b["name"])
+    row.update(latency_s=round(lat, 3), input_tokens=in_tok, output_tokens=out_tok)
+    if all_ok:
+        row.update(detections=dets_all, parse_ok=True)
+
+
 def _zoom_worker(prov, m, text, payload, target, row, attempt_msgs):
     """Multi-turn zoom conversation. The model may request up to ZOOM_LIMIT
     enlarged crops of the rung image before giving its final detections.
@@ -109,6 +146,7 @@ def run_benchmark(models, bench, brands, manifest, root, only_models=None,
 
     refs = load_refs(brands, root, sheet_path=ref_sheet)
     ref_bytes = [b for b, _ in refs]
+    refs_by_brand = {b["name"]: load_refs([b], root) for b in brands}
     ref_labels = [lb for _, lb in refs]
     prompts = {(r, z): build_prompt(brands, ref_labels if r else (), zoom=z)
                for r in (False, True) for z in (False, True)}
@@ -194,7 +232,10 @@ def run_benchmark(models, bench, brands, manifest, root, only_models=None,
                 target = f.read()
             payload = (ref_bytes if use_refs else []) + [target]
             with sems[prov.provider_key]:
-                if zoom:
+                if m.per_brand:
+                    _per_brand_worker(prov, brands, refs_by_brand, m.refs,
+                                      target, row, attempt)
+                elif zoom:
                     _zoom_worker(prov, m, text, payload, target, row, attempt_msgs)
                 else:
                     res, err = attempt(prov, text, payload)

@@ -30,6 +30,7 @@ class ModelCfg:
     price_out: float = 0.0  # USD per 1M output tokens
     refs: bool = False      # attach the configured reference images
     tools: tuple = ()       # e.g. ("zoom",): the model may request enlarged crops
+    per_brand: bool = False  # one focused call per brand, detections unioned
 
 
 def load_reference_sheet(path=None):

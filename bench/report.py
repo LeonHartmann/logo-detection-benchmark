@@ -496,7 +496,7 @@ def _chart_method_bars(scores, metric, y_max=0.9):
     if not groups:
         return ""
     conds = [("base", None, SERIES[0]), ("refs", "refs", SERIES[1]),
-             ("zoom", "zoom", SERIES[2])]
+             ("zoom", "zoom", SERIES[2]), ("perbrand", "perbrand", SERIES[3])]
     vals = {}
     for base, variants in groups.items():
         for label, cond, _ in conds:
@@ -506,8 +506,8 @@ def _chart_method_bars(scores, metric, y_max=0.9):
                 if v is not None:
                     vals[(base, label)] = v
     bases = sorted(groups, key=lambda b: -vals.get((b, "base"), 0))
-    BW, IGAP, GGAP, L, T, B = 26, 2, 34, 44, 14, 46
-    gw = 3 * BW + 2 * IGAP
+    BW, IGAP, GGAP, L, T, B = 24, 2, 34, 44, 14, 46
+    gw = 4 * BW + 3 * IGAP
     W = L + len(bases) * (gw + GGAP) + 10
     H = 300
     sy = lambda v: T + (1 - v / y_max) * (H - T - B)
@@ -536,7 +536,8 @@ def _chart_method_bars(scores, metric, y_max=0.9):
     legend = "".join(
         f'<span class="chip"><i style="background:{c}"></i>{lb}</span>'
         for lb, _, c in [("base", None, SERIES[0]), ("with refs", None, SERIES[1]),
-                         ("with zoom", None, SERIES[2])])
+                         ("with zoom", None, SERIES[2]),
+                         ("per-brand calls + refs", None, SERIES[3])])
     return (f'<div class="legend">{legend}</div>'
             f'<svg viewBox="0 0 {W} {H}" style="max-width:{W}px" role="img" '
             f'aria-label="Method comparison columns">' + "".join(g) + "</svg>")
