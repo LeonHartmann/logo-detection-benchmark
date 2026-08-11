@@ -141,13 +141,16 @@ def _rung_metric(rung_scores, key):
     return rung_scores["presence"]["_macro_f1"] or 0.0
 
 
-def _model_stats(scores, key="f1"):
-    """Per-model summary at the top rung, sorted by the active metric desc."""
+def _model_stats(scores, key="f1", rung=None):
+    """Per-model summary at one rung (default: each model's top rung),
+    sorted by the active metric desc."""
     import math
     out = []
     for name, m in scores["models"].items():
         rungs = {int(k): v for k, v in m["rungs"].items()}
-        top = rungs[max(rungs)]
+        if rung is not None and int(rung) not in rungs:
+            continue
+        top = rungs[int(rung)] if rung is not None else rungs[max(rungs)]
         cost1k = (top["ops"]["cost_per_frame"] or 0) * 1000
         scored = [v for b, v in top["presence"].items() if not b.startswith("_")
                   and (v.get("tp", 0) + v.get("fn", 0) > 0 or v.get("fp", 0) > 0)]
@@ -565,226 +568,345 @@ def _stat_tiles(scores, stats, key="f1", metric_label="F1"):
 
 
 def _render_html(scores, entries, findings=""):
+    all_rungs = sorted({int(r) for m in scores["models"].values()
+                        for r in m["rungs"]}, reverse=True)
+    top_rung = all_rungs[0]
+
+    # ---------- full results table (filterable by model and rung) ----------
     rows = []
-    for model, s in sorted(scores["models"].items()):
-        for rung, rs in s["rungs"].items():
+    for model, s_ in sorted(scores["models"].items()):
+        for rung, rs in s_["rungs"].items():
             o, b, a = rs["ops"], rs["boxes"], rs["attrs"]
             per_brand = ", ".join(f'{k} {_fmt(v["f1"])}' for k, v in rs["presence"].items()
                                   if not k.startswith("_"))
             rows.append(
-                f'<tr data-model="{html.escape(model)}"><td>{html.escape(model)}</td><td>{rung}</td>'
+                f'<tr data-model="{html.escape(model)}" data-rung="{rung}">'
+                f"<td>{html.escape(model)}</td><td>{rung}</td>"
                 f"<td>{_fmt(rs['presence']['_macro_f1'])}</td>"
                 f"<td title='{html.escape(per_brand)}'>{_fmt(b['hit03'])}</td>"
                 f"<td>{_fmt(b['hit05'])}</td><td>{_fmt(b['mean_iou'])}</td>"
                 f"<td>{_fmt(a['size_acc'])}</td><td>{_fmt(a['placement_acc'])}</td>"
                 f"<td>{_fmt(o['cost_per_frame'])}</td><td>{_fmt(o['lat_p50'])}</td>"
                 f"<td>{_fmt(o['parse_fail_rate'])}</td></tr>")
-    stats = _model_stats(scores, "f1")
-    stats_b = _model_stats(scores, "hit03")
 
-    def _view(vstats, key, mlabel):
-        ret_svg, ret_leg = _chart_retention(vstats, key, mlabel)
-        return f"""
+    # ---------- per-rung chart bundles ----------
+    view_defs = [("f1", "presence F1"), ("hit03", "hit@0.3")]
+    bundles = []
+    for rung in all_rungs:
+        rl = f"{rung}p"
+        for key, mlabel in view_defs:
+            vstats = _model_stats(scores, key, rung)
+            bundles.append(f"""
+<div data-bundle data-view="{key}" data-rung="{rung}">
 <div class="tiles">{_stat_tiles(scores, vstats, key, mlabel)}</div>
+<div class="cards">
 <div class="card"><h3>Top models by {mlabel}</h3>
-<p class="sub">Top rung (1080p or native). Value at the bar tip, price per
-1,000 frames beside it.</p>
+<p class="sub">At {rl}. Value at the bar tip, price per 1,000 frames beside it.</p>
 {_chart_ranked_bars(vstats, key, mlabel)}</div>
 <div class="card"><h3>Cost vs quality</h3>
-<p class="sub">{mlabel} at the top rung against price per 1,000 frames.
+<p class="sub">{mlabel} at {rl} against price per 1,000 frames (log scale).
 Orange marks the Pareto frontier: nothing cheaper scores higher.</p>
 {_chart_cost_quality(vstats, key, mlabel)}</div>
-<div class="card"><h3>Resolution robustness</h3>
-<p class="sub">{mlabel} as the same screenshots shrink from 1080p to 144p.
-The flatter the line, the more resolution-proof the model.</p>
-<div class="legend">{ret_leg}</div>
-{ret_svg}</div>"""
+</div>
+</div>""")
+        rstats = _model_stats(scores, "f1", rung)
+        mp = lambda m, r=rung: (m["rungs"].get(str(r)) or {}).get("presence", {}).get("_macro_f1")
+        mh = lambda m, r=rung: (m["rungs"].get(str(r)) or {}).get("boxes", {}).get("hit03")
+        bundles.append(f"""
+<div data-bundle data-view="*" data-rung="{rung}">
+<h2>Method comparison at {rl}: plain vs reference images vs zoom vs per-brand</h2>
+<div class="cards">
+<div class="card"><h3>Finding brands: presence F1</h3>
+<p class="sub">Same model, different ways of asking. Missing bars mean the
+condition was not run for that model.</p>
+{_chart_method_bars(scores, mp)}</div>
+<div class="card"><h3>Drawing boxes: hit@0.3</h3>
+<p class="sub">Share of truth boxes matched at IoU 0.3 or better.</p>
+{_chart_method_bars(scores, mh, y_max=0.7)}</div>
+</div>
+<h2>Diagnostics at {rl}</h2>
+<div class="cards">
+<div class="card"><h3>Hallucination check: precision vs recall</h3>
+<p class="sub">Below the diagonal means the model reports brands that are not
+there; right of it means it finds what exists. Models with F1 above 0.05.</p>
+{_chart_precision_recall(rstats)}</div>
+<div class="card"><h3>Speed: median seconds per call</h3>
+<p class="sub">Median latency at {rl}, log scale. Reasoning models think long;
+specialists answer fast.</p>
+{_chart_latency(rstats)}</div>
+<div class="card"><h3>Finding brands vs drawing boxes</h3>
+<p class="sub">Presence F1 against mean IoU of matched boxes. Top right is the
+goal; bottom right knows a brand is present but cannot localize it.</p>
+{_chart_presence_boxes(rstats)}</div>
+<div class="card"><h3>Per-brand presence F1</h3>
+<p class="sub">Darker is worse, lighter is better. Columns ordered by truth
+frame count; treat low-n columns as anecdotes.</p>
+<div style="overflow-x:auto">{_chart_brand_heatmap(rstats)}</div></div>
+</div>
+</div>""")
 
+    # retention: rung-independent, one per view
+    for key, mlabel in view_defs:
+        vstats = _model_stats(scores, key)
+        ret_svg, ret_leg = _chart_retention(vstats, key, mlabel)
+        bundles.append(f"""
+<div data-bundle data-view="{key}" data-rung="*">
+<div class="card"><h3>Resolution robustness</h3>
+<p class="sub">{mlabel} as the same screenshots shrink from {top_rung}p to
+{all_rungs[-1]}p. The flatter the line, the more resolution-proof the model.
+This chart always shows every rung.</p>
+<div class="legend">{ret_leg}</div>
+{ret_svg}</div>
+</div>""")
+
+    # ---------- header numbers, controls, details, gallery ----------
+    stats = _model_stats(scores, "f1")
     n_models = len(stats)
     n_images = scores["n_images"]
     n_calls = sum(r["ops"]["n_frames"] for st in stats for r in st["rungs"].values())
     spend = sum(st["spend"] for st in stats)
     gen_date = (scores.get("generated") or "")[:10]
-    filter_bar = (
-        '<div class="fbar">'
-        '<span class="seg"><button class="segbtn on" data-view="view-f1">'
-        'Logo detection only</button><button class="segbtn" data-view="view-hit03">'
-        'Detection + boxes</button></span>'
-        '<span class="fbtn" id="fall">all</span>'
-        '<span class="fbtn" id="fnone">none</span>'
-        + "".join(f'<button class="fchip on" data-fmodel="{html.escape(s["name"])}">'
-                  f'{html.escape(s["name"])}</button>' for s in stats)
-        + "</div>")
-    charts = f"""
-{filter_bar}
-<p class="sub">Logo detection only ranks by presence F1: did the model report
-the brand at all. Detection + boxes ranks by hit@0.3: the share of truth
-logos the model found AND boxed at IoU 0.3 or better.</p>
-<div id="view-f1">{_view(stats, "f1", "presence F1")}</div>
-<div id="view-hit03" style="display:none">{_view(stats_b, "hit03", "hit@0.3")}</div>
-<h2>Method comparison: plain vs reference images vs zoom tool</h2>
-<div class="cards">
-<div class="card"><h3>Finding brands: presence F1 at the top rung</h3>
-<p class="sub">Same model, three ways of asking. Missing bars mean the
-condition was not run for that model.</p>
-{_chart_method_bars(scores, lambda m: m["rungs"]["1080"]["presence"]["_macro_f1"])}</div>
-<div class="card"><h3>Drawing boxes: hit@0.3 at the top rung</h3>
-<p class="sub">Share of truth boxes matched at IoU 0.3 or better. Reference
-images visibly cost the box-strong models their localization.</p>
-{_chart_method_bars(scores, lambda m: m["rungs"]["1080"]["boxes"]["hit03"], y_max=0.7)}</div>
-<div class="card"><h3>Low resolution: presence F1 at 144p</h3>
-<p class="sub">The zoom tool is allowed to enlarge crops of the same 144p
-image; gains here are attention, not extra pixels.</p>
-{_chart_method_bars(scores, lambda m: m["rungs"]["144"]["presence"]["_macro_f1"])}</div>
-</div>
-<div class="cards">
-<div class="card"><h3>Hallucination check: precision vs recall</h3>
-<p class="sub">Macro presence precision against recall at the top rung. Below
-the diagonal means the model reports brands that are not there; right of it
-means it finds what exists. Only models with F1 above 0.05 shown.</p>
-{_chart_precision_recall(stats)}</div>
-<div class="card"><h3>Speed: median seconds per call</h3>
-<p class="sub">Median latency at the top rung, log scale. Reasoning models
-think long; specialists answer fast.</p>
-{_chart_latency(stats)}</div>
-<div class="card"><h3>Finding brands vs drawing boxes</h3>
-<p class="sub">Presence F1 against mean IoU of matched boxes. Top right is the
-goal; the bottom right models know a brand is present but cannot localize it.</p>
-{_chart_presence_boxes(stats)}</div>
-<div class="card"><h3>Per-brand presence F1 (top rung)</h3>
-<p class="sub">Darker is worse, lighter is better. Columns are ordered by how
-many truth frames contain the brand; treat low-n columns as anecdotes.</p>
-<div style="overflow-x:auto">{_chart_brand_heatmap(stats)}</div></div>
-</div>"""
+
+    model_names = [st["name"] for st in stats]
+    baselines = [n for n in model_names if "+" not in n]
+    top10 = model_names[:10]
+    chips = "".join(f'<button class="fchip on" data-fmodel="{html.escape(n)}">'
+                    f'{html.escape(n)}</button>' for n in model_names)
+    rung_seg = "".join(
+        f'<button class="segbtn rungbtn{" on" if r == top_rung else ""}" '
+        f'data-rung="{r}">{r}p</button>' for r in all_rungs)
+
     details_sections = []
-    for model, s in sorted(scores["models"].items()):
+    for model, s_ in sorted(scores["models"].items()):
         detail_rows = []
-        for rung, rs in s["rungs"].items():
+        for rung, rs in s_["rungs"].items():
             for brand, v in sorted(rs["presence"].items()):
                 if not brand.startswith("_"):
                     detail_rows.append(
-                        f"<tr><td>{html.escape(brand)}</td><td>{rung}</td><td>{_fmt(v.get('p'))}</td>"
+                        f"<tr><td>{html.escape(brand)}</td><td>{rung}</td>"
+                        f"<td>{_fmt(v.get('p'))}</td>"
                         f"<td>{_fmt(v.get('r'))}</td><td>{_fmt(v.get('f1'))}</td></tr>")
         if detail_rows:
             details_sections.append(
                 f'<details data-model="{html.escape(model)}">'
                 f'<summary>{html.escape(model)} per-brand F1</summary>'
-                f'<table style="margin:8px 0;border-collapse:collapse"><thead><tr>'
-                f'<th style="border:1px solid #333;padding:4px 8px;text-align:left">brand</th>'
-                f'<th style="border:1px solid #333;padding:4px 8px;text-align:left">rung</th>'
-                f'<th style="border:1px solid #333;padding:4px 8px">precision</th>'
-                f'<th style="border:1px solid #333;padding:4px 8px">recall</th>'
-                f'<th style="border:1px solid #333;padding:4px 8px">f1</th></tr></thead>'
+                f'<table class="mini"><thead><tr><th>brand</th><th>rung</th>'
+                f'<th>precision</th><th>recall</th><th>f1</th></tr></thead>'
                 f'<tbody>{"".join(detail_rows)}</tbody></table></details>')
-    gallery = "".join(
-        f'<figure data-model="{html.escape(e["model"])}">'
-        f'<img src="{html.escape(e["img"])}" loading="lazy">'
-        f'<figcaption>{html.escape(e["model"])}: {e["kind"]} '
-        f'({html.escape(e["brand"])}) on {html.escape(e["image"])}</figcaption></figure>'
-        for e in entries)
+
+    gallery_json = json.dumps([
+        {"m": e["model"], "img": e["img"], "k": e["kind"],
+         "b": e["brand"], "i": e["image"]} for e in entries]).replace("</", "<\\/")
+
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>Logo detection leaderboard</title><style>
-body{{font:14px system-ui;margin:24px auto;padding:0 24px;background:#111;color:#eee;max-width:1280px}}
+<title>Logo detection benchmark</title><style>
+:root{{color-scheme:dark}}
+*{{box-sizing:border-box}}
+body{{font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;
+background:#0d0d0d;color:#eee}}
+.wrap{{max-width:1300px;margin:0 auto;padding:28px 28px 60px}}
 header{{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}}
-h1{{margin:0 0 6px}}
-.meta{{text-align:right;font-size:13px;color:#c3c2b7;padding-top:10px;white-space:nowrap}}
+h1{{margin:0 0 6px;font-size:24px;letter-spacing:-.01em}}
+h2{{font-size:16px;margin:36px 0 12px;letter-spacing:-.005em}}
+.eyebrow{{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#898781}}
+.meta{{text-align:right;font-size:13px;color:#c3c2b7;padding-top:8px;white-space:nowrap}}
 .meta span{{font-size:12px;color:#898781}}
-table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #333;
-padding:4px 8px;text-align:right;font-variant-numeric:tabular-nums}}
-th{{cursor:pointer;background:#1b1b1b}}
-td:first-child,th:first-child{{text-align:left}}
-.tiles{{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:16px 0}}
-.tile{{background:#1a1a19;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px 14px}}
-.tl{{font-size:11px;color:#898781;letter-spacing:.04em;text-transform:uppercase}}
+.sub{{color:#898781;font-size:12px;margin:0 0 12px}}
+a{{color:#3987e5}}
+/* toolbar */
+.toolbar{{position:sticky;top:0;z-index:6;background:rgba(13,13,13,.94);
+backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,.07);
+margin:18px -28px 20px;padding:10px 28px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}}
+.seg{{display:inline-flex;border:1px solid rgba(255,255,255,.14);border-radius:8px;overflow:hidden}}
+.segbtn{{font:12px system-ui;background:transparent;color:#c3c2b7;border:none;
+padding:6px 12px;cursor:pointer}}
+.segbtn:hover{{background:rgba(255,255,255,.06)}}
+.segbtn.on{{background:#3987e5;color:#0b0b0b;font-weight:600}}
+.tlabel{{font-size:11px;color:#898781;letter-spacing:.06em;text-transform:uppercase;margin:0 2px 0 8px}}
+.fbtn{{font-size:12px;color:#c3c2b7;cursor:pointer;background:transparent;
+border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:5px 10px}}
+.fbtn:hover{{background:rgba(255,255,255,.06)}}
+#modelbox{{width:100%;order:9}}
+#modelbox summary{{cursor:pointer;font-size:12px;color:#c3c2b7;list-style:none;padding:2px 0}}
+#modelbox summary::before{{content:"▸ "}}#modelbox[open] summary::before{{content:"▾ "}}
+.chiprow{{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 2px}}
+.fchip{{font:12px system-ui;background:#1a1a19;color:#c3c2b7;
+border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:3px 10px;cursor:pointer}}
+.fchip:hover{{border-color:rgba(255,255,255,.3)}}
+.fchip.on{{background:#24303f;color:#eee;border-color:#3987e5}}
+button:focus-visible,.fchip:focus-visible{{outline:2px solid #3987e5;outline-offset:1px}}
+/* cards and tiles */
+.tiles{{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:14px 0}}
+.tile{{background:#1a1a19;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px 14px}}
+.tl{{font-size:11px;color:#898781;letter-spacing:.06em;text-transform:uppercase}}
 .tv{{font-size:24px;font-weight:600;margin:2px 0}}
 .ts{{font-size:12px;color:#c3c2b7}}
-.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(540px,1fr));gap:16px;margin:16px 0}}
-.card{{background:#1a1a19;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:16px;margin:16px 0}}
+.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(540px,1fr));gap:16px;margin:14px 0}}
+.card{{background:#1a1a19;border:1px solid rgba(255,255,255,.07);border-radius:10px;
+padding:18px;margin:14px 0}}
 .cards .card{{margin:0}}
-.card h3{{margin:0 0 4px;font-size:15px}}
-.sub{{color:#898781;font-size:12px;margin:0 0 12px}}
+.card h3{{margin:0 0 4px;font-size:15px;letter-spacing:-.005em}}
 svg{{max-width:100%;height:auto;display:block}}
+svg text{{font-family:system-ui,-apple-system,sans-serif}}
 .legend{{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px}}
 .chip{{font-size:12px;color:#c3c2b7;display:inline-flex;align-items:center;gap:6px}}
 .chip i{{width:10px;height:10px;border-radius:2px;display:inline-block}}
-#tt{{position:fixed;pointer-events:none;background:#0b0b0b;color:#eee;border:1px solid rgba(255,255,255,.15);
-border-radius:6px;padding:6px 10px;font-size:12px;display:none;z-index:10;max-width:320px}}
-.fbar{{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:12px 0;position:sticky;top:0;
-background:#111;padding:8px 0;z-index:5}}
-.fchip{{font:12px system-ui;background:#1a1a19;color:#c3c2b7;border:1px solid rgba(255,255,255,.12);
-border-radius:12px;padding:3px 10px;cursor:pointer}}
-.fchip.on{{background:#24303f;color:#eee;border-color:#3987e5}}
-.fbtn{{font-size:12px;color:#898781;cursor:pointer;text-decoration:underline;margin-right:4px}}
-.seg{{display:inline-flex;border:1px solid rgba(255,255,255,.15);border-radius:8px;overflow:hidden;margin-right:10px}}
-.segbtn{{font:12px system-ui;background:#1a1a19;color:#c3c2b7;border:none;padding:5px 12px;cursor:pointer}}
-.segbtn.on{{background:#3987e5;color:#0b0b0b;font-weight:600}}
+/* table */
+table{{border-collapse:separate;border-spacing:0;width:100%;background:#1a1a19;
+border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden}}
+th,td{{padding:7px 10px;text-align:right;font-variant-numeric:tabular-nums;font-size:13px;
+border-bottom:1px solid rgba(255,255,255,.05)}}
+th{{cursor:pointer;background:#232322;color:#c3c2b7;font-size:11px;letter-spacing:.05em;
+text-transform:uppercase}}
+#lb th{{position:sticky;top:53px;z-index:2}}
+td:first-child,th:first-child{{text-align:left}}
+tbody tr:nth-child(odd) td{{background:rgba(255,255,255,.015)}}
+tbody tr:hover td{{background:rgba(57,135,229,.08)}}
+.mini{{margin:8px 0;border-radius:8px}}
+.mini th{{position:static}}
+details[data-model]{{margin:4px 0}}
+details[data-model] summary{{cursor:pointer;font-size:13px;color:#c3c2b7;padding:3px 0}}
+/* gallery */
+#gal{{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}}
+#gal figure{{margin:0;background:#1a1a19;border:1px solid rgba(255,255,255,.07);
+border-radius:10px;overflow:hidden}}
+#gal img{{width:100%;display:block}}
+#gal figcaption{{font-size:12px;color:#c3c2b7;padding:8px 10px}}
+#galmore{{margin:16px auto;display:block}}
+#tt{{position:fixed;pointer-events:none;background:#0b0b0b;color:#eee;
+border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:6px 10px;font-size:12px;
+display:none;z-index:10;max-width:320px}}
 [data-model].fdim{{opacity:0.12;pointer-events:none}}
-tr.fhide,figure.fhide,details.fhide{{display:none}}
-figure{{display:inline-block;margin:8px;max-width:420px}}img{{max-width:100%}}
-figcaption{{font-size:12px;color:#aaa}}
-</style></head><body>
+tr.fhide,details.fhide{{display:none}}
+footer{{margin:48px 0 0;color:#898781;font-size:12px;border-top:1px solid rgba(255,255,255,.07);
+padding-top:16px}}
+@media (prefers-reduced-motion:no-preference){{.fchip,.segbtn,.fbtn{{transition:background .12s,border-color .12s}}}}
+</style></head><body><div class="wrap">
 <header>
 <div>
+<div class="eyebrow">Vision model benchmark · Delay Sports corpus</div>
 <h1>Logo detection benchmark</h1>
-<p class="sub" style="max-width:760px">{n_models} vision models, {n_images} human-labeled
-social media frames, 5 brands, 5 resolution rungs (1080p to 144p). One
-canonical prompt, boxes scored against human truth at IoU thresholds.
-Hover any mark for details; chips filter models everywhere.</p>
+<p class="sub" style="max-width:740px">{n_models} vision models, {n_images} human-labeled
+social media frames, 5 brands, {len(all_rungs)} resolution rungs ({top_rung}p to
+{all_rungs[-1]}p). One canonical prompt, boxes scored against human truth at IoU
+thresholds. Hover any mark for exact values.</p>
 </div>
 <div class="meta">Research by Leon Hartmann<br>
 <span>generated {gen_date} · {n_calls:,} API calls · ${spend:,.2f} total</span></div>
 </header>
 {findings}
-{charts}
+<div class="toolbar">
+<span class="tlabel">Ranking</span>
+<span class="seg"><button class="segbtn viewbtn on" data-view="f1">Logo detection only</button><button class="segbtn viewbtn" data-view="hit03">Detection + boxes</button></span>
+<span class="tlabel">Resolution</span>
+<span class="seg">{rung_seg}</span>
+<span class="tlabel">Models</span>
+<button class="fbtn" data-preset="all">all</button>
+<button class="fbtn" data-preset="none">none</button>
+<button class="fbtn" data-preset="base">baselines</button>
+<button class="fbtn" data-preset="cond">conditions</button>
+<button class="fbtn" data-preset="top10">top 10</button>
+<details id="modelbox"><summary>pick individual models</summary>
+<div class="chiprow">{chips}</div></details>
+</div>
+<p class="sub">Logo detection only ranks by presence F1: did the model report the
+brand at all. Detection + boxes ranks by hit@0.3: the share of truth logos the
+model found AND boxed at IoU 0.3 or better. The resolution buttons rescope every
+chart and the table to that rung.</p>
+{"".join(bundles)}
 <h2>Full results table</h2>
+<p class="sub">Showing the selected resolution only. Click a column header to sort.</p>
 <table id="lb"><thead><tr><th>model</th><th>rung</th><th>presence F1</th>
 <th>hit@0.3</th><th>hit@0.5</th><th>mean IoU</th><th>size acc</th>
 <th>placement acc</th><th>$/frame</th><th>lat p50</th><th>parse fail</th></tr>
 </thead><tbody>{"".join(rows)}</tbody></table>
 <h2>Per-brand F1 by model</h2>{"".join(details_sections)}
-<h2>Disagreement gallery ({len(entries)} entries)</h2>{gallery}
-<footer class="sub" style="margin:32px 0 16px">Logo detection benchmark ·
-Research by Leon Hartmann · generated {gen_date}</footer>
+<h2 id="galh">Disagreement gallery</h2>
+<p class="sub">Rendered at 480p. Truth boxes green, model boxes red. Filtered by
+the model selection above.</p>
+<div id="gal"></div>
+<button id="galmore" class="fbtn">show more</button>
+<footer>Logo detection benchmark · Research by Leon Hartmann · generated {gen_date}</footer>
+</div>
 <div id="tt"></div>
+<script id="galdata" type="application/json">{gallery_json}</script>
 <script>
-document.querySelectorAll('.segbtn').forEach(b=>b.onclick=()=>{{
-  document.querySelectorAll('.segbtn').forEach(x=>x.classList.toggle('on',x===b));
-  document.getElementById('view-f1').style.display=b.dataset.view==='view-f1'?'':'none';
-  document.getElementById('view-hit03').style.display=b.dataset.view==='view-hit03'?'':'none';
-  try{{localStorage.setItem('lb_view',b.dataset.view);}}catch(e){{}}
-  applyFilter();
-}});
-try{{const v=localStorage.getItem('lb_view');
-if(v==='view-hit03')document.querySelector('.segbtn[data-view="view-hit03"]').click();}}catch(e){{}}
-const active=new Set([...document.querySelectorAll('.fchip')].map(c=>c.dataset.fmodel));
-function applyFilter(){{
-  document.querySelectorAll('.fchip').forEach(c=>
-    c.classList.toggle('on',active.has(c.dataset.fmodel)));
-  document.querySelectorAll('[data-model]').forEach(el=>{{
-    const on=active.has(el.dataset.model);
-    if(el.tagName==='TR'||el.tagName==='FIGURE'||el.tagName==='DETAILS')
-      el.classList.toggle('fhide',!on);
-    else el.classList.toggle('fdim',!on);
-  }});
+const MODELS={json.dumps(model_names)};
+const BASELINES=new Set({json.dumps(baselines)});
+const TOP10=new Set({json.dumps(top10)});
+const state={{view:'f1',rung:'{top_rung}',models:new Set(MODELS)}};
+try{{const v=localStorage.getItem('lb_view');if(v)state.view=v;
+const r=localStorage.getItem('lb_rung');if(r)state.rung=r;}}catch(e){{}}
+const GAL=JSON.parse(document.getElementById('galdata').textContent);
+let galShown=0;const GALBATCH=48;
+function galRender(reset){{
+  const gal=document.getElementById('gal');
+  if(reset){{gal.innerHTML='';galShown=0;}}
+  const list=GAL.filter(e=>state.models.has(e.m));
+  document.getElementById('galh').textContent=
+    `Disagreement gallery (${{list.length}} entries)`;
+  const next=list.slice(galShown,galShown+GALBATCH);
+  for(const e of next){{
+    const f=document.createElement('figure');
+    f.innerHTML=`<img src="${{e.img}}" loading="lazy"><figcaption></figcaption>`;
+    f.querySelector('figcaption').textContent=`${{e.m}}: ${{e.k}} (${{e.b}}) on ${{e.i}}`;
+    gal.appendChild(f);
+  }}
+  galShown+=next.length;
+  document.getElementById('galmore').style.display=
+    galShown<list.length?'block':'none';
 }}
+document.getElementById('galmore').onclick=()=>galRender(false);
+function apply(){{
+  document.querySelectorAll('.viewbtn').forEach(b=>
+    b.classList.toggle('on',b.dataset.view===state.view));
+  document.querySelectorAll('.rungbtn').forEach(b=>
+    b.classList.toggle('on',b.dataset.rung===state.rung));
+  document.querySelectorAll('[data-bundle]').forEach(el=>{{
+    const vOk=el.dataset.view==='*'||el.dataset.view===state.view;
+    const rOk=el.dataset.rung==='*'||el.dataset.rung===state.rung;
+    el.style.display=vOk&&rOk?'':'none';
+  }});
+  document.querySelectorAll('.fchip').forEach(c=>
+    c.classList.toggle('on',state.models.has(c.dataset.fmodel)));
+  document.querySelectorAll('[data-model]').forEach(el=>{{
+    const on=state.models.has(el.dataset.model);
+    if(el.tagName==='TR'){{
+      el.classList.toggle('fhide',!on||el.dataset.rung!==state.rung);
+    }} else if(el.tagName==='DETAILS'){{
+      el.classList.toggle('fhide',!on);
+    }} else {{
+      el.classList.toggle('fdim',!on);
+    }}
+  }});
+  try{{localStorage.setItem('lb_view',state.view);
+  localStorage.setItem('lb_rung',state.rung);}}catch(e){{}}
+  galRender(true);
+}}
+document.querySelectorAll('.viewbtn').forEach(b=>b.onclick=()=>{{state.view=b.dataset.view;apply();}});
+document.querySelectorAll('.rungbtn').forEach(b=>b.onclick=()=>{{state.rung=b.dataset.rung;apply();}});
 document.querySelectorAll('.fchip').forEach(c=>c.onclick=()=>{{
   const m=c.dataset.fmodel;
-  active.has(m)?active.delete(m):active.add(m);applyFilter();}});
-document.getElementById('fall').onclick=()=>{{
-  document.querySelectorAll('.fchip').forEach(c=>active.add(c.dataset.fmodel));applyFilter();}};
-document.getElementById('fnone').onclick=()=>{{active.clear();applyFilter();}};
+  state.models.has(m)?state.models.delete(m):state.models.add(m);apply();}});
+document.querySelectorAll('.fbtn[data-preset]').forEach(b=>b.onclick=()=>{{
+  const p=b.dataset.preset;
+  if(p==='all')state.models=new Set(MODELS);
+  else if(p==='none')state.models=new Set();
+  else if(p==='base')state.models=new Set(MODELS.filter(m=>BASELINES.has(m)));
+  else if(p==='cond')state.models=new Set(MODELS.filter(m=>m.includes('+')).flatMap(m=>[m,m.split('+')[0]]));
+  else if(p==='top10')state.models=new Set(MODELS.filter(m=>TOP10.has(m)));
+  apply();}});
 const tt=document.getElementById('tt');
 document.querySelectorAll('[data-tt]').forEach(el=>{{
 el.addEventListener('mousemove',e=>{{tt.textContent=el.dataset.tt;
 tt.style.display='block';tt.style.left=Math.min(e.clientX+14,innerWidth-330)+'px';
 tt.style.top=(e.clientY+14)+'px';}});
 el.addEventListener('mouseleave',()=>tt.style.display='none');}});
-</script>
-<script>
 document.querySelectorAll('#lb th').forEach((th,i)=>th.onclick=()=>{{
 const tb=document.querySelector('#lb tbody');
 [...tb.rows].sort((a,b)=>{{const x=a.cells[i].innerText,y=b.cells[i].innerText;
 const nx=parseFloat(x),ny=parseFloat(y);
 return isNaN(nx)||isNaN(ny)?x.localeCompare(y):ny-nx;}})
 .forEach(r=>tb.appendChild(r));}});
+apply();
 </script></body></html>"""
