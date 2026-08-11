@@ -86,35 +86,70 @@ def test_api_error_is_recorded_after_retries(tmp_path):
 
 
 def test_concurrency_cap_is_enforced(tmp_path):
-    """Verify the per-provider concurrency semaphore is actually enforced."""
-    manifest = setup_repo(tmp_path, n_images=3)
-    models = [ModelCfg("fake-model", "fake", "fake-1")]
+    """Verify the per-provider semaphore is actually enforced, not just pool sizing.
+
+    Uses two models with different provider keys and concurrency caps:
+    - fakeA: cap 1
+    - fakeB: cap 4
+    ThreadPoolExecutor gets max_workers=5, so if semaphore is a no-op,
+    fakeA calls would overlap. We assert fakeA max_in_flight == 1 to prove
+    the semaphore is enforced.
+    """
+    manifest = setup_repo(tmp_path, n_images=4)
+
+    # Two models with different provider keys and caps
+    models = [
+        ModelCfg("m-a", "fakeA", "fake-1"),
+        ModelCfg("m-b", "fakeB", "fake-2")
+    ]
+
+    providers = {}
 
     class ConcurrencyTrackingProvider:
-        provider_key = "fake"
-        def __init__(self):
+        def __init__(self, key):
+            self.provider_key = key
             self.lock = threading.Lock()
             self.in_flight = 0
             self.max_in_flight = 0
+
         def call(self, text, images):
             with self.lock:
                 self.in_flight += 1
                 self.max_in_flight = max(self.max_in_flight, self.in_flight)
             try:
-                time.sleep(0.01)  # brief hold to observe concurrency
-                return CallResult(GOOD, 100, 10, 0.01)
+                time.sleep(0.02)  # 20ms to observe concurrency effects
+                return CallResult(GOOD, 100, 10, 0.02)
             finally:
                 with self.lock:
                     self.in_flight -= 1
 
-    cp = ConcurrencyTrackingProvider()
-    bench_cfg = {**BENCH, "concurrency": {"fake": 2}}
+    def provider_factory(mcfg, bench):
+        key = mcfg.provider
+        if key not in providers:
+            providers[key] = ConcurrencyTrackingProvider(key)
+        return providers[key]
+
+    bench_cfg = {**BENCH, "concurrency": {"fakeA": 1, "fakeB": 4}, "rungs": [480]}
+    # 4 images x 1 rung = 4 work items per model = 8 total
     stats = rn.run_benchmark(models, bench_cfg, BRANDS, manifest, str(tmp_path),
-                             provider_factory=lambda m, b: cp)
-    rows = [json.loads(l) for l in open(tmp_path / "results" / "raw" / "fake-model.jsonl")]
-    assert len(rows) == 6  # 3 images x 2 rungs
-    assert stats["done"] == 6
-    assert cp.max_in_flight <= 2, f"max_in_flight {cp.max_in_flight} exceeds cap of 2"
+                             provider_factory=provider_factory, only_rungs=[480])
+
+    # Verify work completed
+    rows_a = [json.loads(l) for l in open(tmp_path / "results" / "raw" / "m-a.jsonl")]
+    rows_b = [json.loads(l) for l in open(tmp_path / "results" / "raw" / "m-b.jsonl")]
+    assert len(rows_a) == 4 and len(rows_b) == 4
+    assert stats["done"] == 8
+
+    # The critical assertion: fakeA's semaphore (cap 1) must be enforced
+    # even though ThreadPoolExecutor has 5 workers available (1 + 4)
+    # If semaphore is a no-op, with 4 fakeA items and 5 pool workers,
+    # multiple fakeA calls would execute simultaneously -> max_in_flight >= 2
+    assert providers["fakeA"].max_in_flight == 1, \
+        f"fakeA semaphore not enforced: max_in_flight={providers['fakeA'].max_in_flight}, cap=1"
+
+    # fakeB should respect its cap of 4 (typically much less due to serialization)
+    assert providers["fakeB"].max_in_flight <= 4, \
+        f"fakeB exceeded cap: max_in_flight={providers['fakeB'].max_in_flight}, cap=4"
 
 
 def test_worker_file_error_doesnt_crash_run(tmp_path, monkeypatch):
