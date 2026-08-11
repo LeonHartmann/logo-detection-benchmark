@@ -1,0 +1,546 @@
+{
+ "images": [
+  {
+   "id": "ig__2026-01-30_3821624126633156923_3.jpg",
+   "native": [
+    1365,
+    1706
+   ],
+   "stratum": "small",
+   "source": {
+    "type": "ig",
+    "bench_id": "igimg__2026-01-30_3821624126633156923_3.jpg"
+   }
+  },
+  {
+   "id": "ig__2026-02-12_3831042752851271591_4.jpg",
+   "native": [
+    1365,
+    1820
+   ],
+   "stratum": "small",
+   "source": {
+    "type": "ig",
+    "bench_id": "igimg__2026-02-12_3831042752851271591_4.jpg"
+   }
+  },
+  {
+   "id": "ig__2026-02-17_3834509254392817322_2.jpg",
+   "native": [
+    1365,
+    1820
+   ],
+   "stratum": "small",
+   "source": {
+    "type": "ig",
+    "bench_id": "igimg__2026-02-17_3834509254392817322_2.jpg"
+   }
+  },
+  {
+   "id": "ig__2026-03-01_3843175230617463640_0.jpg",
+   "native": [
+    1440,
+    1799
+   ],
+   "stratum": "empty",
+   "source": {
+    "type": "ig",
+    "bench_id": "igimg__2026-03-01_3843175230617463640_0.jpg"
+   }
+  },
+  {
+   "id": "ig__2026-03-01_3843257097324633191_5.jpg",
+   "native": [
+    1365,
+    1706
+   ],
+   "stratum": "normal",
+   "source": {
+    "type": "ig",
+    "bench_id": "igimg__2026-03-01_3843257097324633191_5.jpg"
+   }
+  },
+  {
+   "id": "ig__2026-03-15_3853463180521522509_0.jpg",
+   "native": [
+    1440,
+    1800
+   ],
+   "stratum": "small",
+   "source": {
+    "type": "ig",
+    "bench_id": "igimg__2026-03-15_3853463180521522509_0.jpg"
+   }
+  },
+  {
+   "id": "ig__2026-05-03_3888888588272181932_5.jpg",
+   "native": [
+    1365,
+    1706
+   ],
+   "stratum": "small",
+   "source": {
+    "type": "ig",
+    "bench_id": "igimg__2026-05-03_3888888588272181932_5.jpg"
+   }
+  },
+  {
+   "id": "ig__2026-05-21_3902038967499382729_3.jpg",
+   "native": [
+    1368,
+    1818
+   ],
+   "stratum": "normal",
+   "source": {
+    "type": "ig",
+    "bench_id": "igimg__2026-05-21_3902038967499382729_3.jpg"
+   }
+  },
+  {
+   "id": "ig__2026-07-06_3935326014816656977_6.jpg",
+   "native": [
+    1365,
+    1693
+   ],
+   "stratum": "small",
+   "source": {
+    "type": "ig",
+    "bench_id": "igimg__2026-07-06_3935326014816656977_6.jpg"
+   }
+  },
+  {
+   "id": "yt__20260129_nt41l3Zt88o_1070s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "busy",
+   "source": {
+    "type": "yt",
+    "video": "20260129_nt41l3Zt88o",
+    "second": 1070,
+    "bench_id": "ytsheet__20260129_nt41l3Zt88o_s036__c5.jpg"
+   }
+  },
+  {
+   "id": "yt__20260129_nt41l3Zt88o_2075s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "busy",
+   "source": {
+    "type": "yt",
+    "video": "20260129_nt41l3Zt88o",
+    "second": 2075,
+    "bench_id": "ytsheet__20260129_nt41l3Zt88o_s070__c2.jpg"
+   }
+  },
+  {
+   "id": "yt__20260129_nt41l3Zt88o_485s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "busy",
+   "source": {
+    "type": "yt",
+    "video": "20260129_nt41l3Zt88o",
+    "second": 485,
+    "bench_id": "ytsheet__20260129_nt41l3Zt88o_s017__c2.jpg"
+   }
+  },
+  {
+   "id": "yt__20260129_nt41l3Zt88o_525s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "normal",
+   "source": {
+    "type": "yt",
+    "video": "20260129_nt41l3Zt88o",
+    "second": 525,
+    "bench_id": "ytsheet__20260129_nt41l3Zt88o_s018__c4.jpg"
+   }
+  },
+  {
+   "id": "yt__20260129_nt41l3Zt88o_760s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "normal",
+   "source": {
+    "type": "yt",
+    "video": "20260129_nt41l3Zt88o",
+    "second": 760,
+    "bench_id": "ytsheet__20260129_nt41l3Zt88o_s026__c3.jpg"
+   }
+  },
+  {
+   "id": "yt__20260413_R-y985mlOEc_535s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "normal",
+   "source": {
+    "type": "yt",
+    "video": "20260413_R-y985mlOEc",
+    "second": 535,
+    "bench_id": "ytsheet__20260413_R-y985mlOEc_s018__c6.jpg"
+   }
+  },
+  {
+   "id": "yt__20260427_FKXJ4unviJ4_1525s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "normal",
+   "source": {
+    "type": "yt",
+    "video": "20260427_FKXJ4unviJ4",
+    "second": 1525,
+    "bench_id": "ytsheet__20260427_FKXJ4unviJ4_s051__c6.jpg"
+   }
+  },
+  {
+   "id": "yt__20260427_FKXJ4unviJ4_2405s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "normal",
+   "source": {
+    "type": "yt",
+    "video": "20260427_FKXJ4unviJ4",
+    "second": 2405,
+    "bench_id": "ytsheet__20260427_FKXJ4unviJ4_s081__c2.jpg"
+   }
+  },
+  {
+   "id": "yt__20260427_FKXJ4unviJ4_260s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "busy",
+   "source": {
+    "type": "yt",
+    "video": "20260427_FKXJ4unviJ4",
+    "second": 260,
+    "bench_id": "ytsheet__20260427_FKXJ4unviJ4_s009__c5.jpg"
+   }
+  },
+  {
+   "id": "yt__20260427_FKXJ4unviJ4_540s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "busy",
+   "source": {
+    "type": "yt",
+    "video": "20260427_FKXJ4unviJ4",
+    "second": 540,
+    "bench_id": "ytsheet__20260427_FKXJ4unviJ4_s019__c1.jpg"
+   }
+  },
+  {
+   "id": "yt__20260511_oRmjGqufhFE_1375s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "small",
+   "source": {
+    "type": "yt",
+    "video": "20260511_oRmjGqufhFE",
+    "second": 1375,
+    "bench_id": "ytsheet__20260511_oRmjGqufhFE_s046__c6.jpg"
+   }
+  },
+  {
+   "id": "yt__20260511_oRmjGqufhFE_875s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "empty",
+   "source": {
+    "type": "yt",
+    "video": "20260511_oRmjGqufhFE",
+    "second": 875,
+    "bench_id": "ytsheet__20260511_oRmjGqufhFE_s030__c2.jpg"
+   }
+  },
+  {
+   "id": "yt__20260517_0gIADzgKJx8_2140s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "normal",
+   "source": {
+    "type": "yt",
+    "video": "20260517_0gIADzgKJx8",
+    "second": 2140,
+    "bench_id": "ytsheet__20260517_0gIADzgKJx8_s072__c3.jpg"
+   }
+  },
+  {
+   "id": "yt__20260517_0gIADzgKJx8_2540s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "small",
+   "source": {
+    "type": "yt",
+    "video": "20260517_0gIADzgKJx8",
+    "second": 2540,
+    "bench_id": "ytsheet__20260517_0gIADzgKJx8_s085__c5.jpg"
+   }
+  },
+  {
+   "id": "yt__20260601_pIx3iVzxeqQ_1010s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "empty",
+   "source": {
+    "type": "yt",
+    "video": "20260601_pIx3iVzxeqQ",
+    "second": 1010,
+    "bench_id": "ytsheet__20260601_pIx3iVzxeqQ_s034__c5.jpg"
+   }
+  },
+  {
+   "id": "yt__20260601_pIx3iVzxeqQ_115s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "normal",
+   "source": {
+    "type": "yt",
+    "video": "20260601_pIx3iVzxeqQ",
+    "second": 115,
+    "bench_id": "ytsheet__20260601_pIx3iVzxeqQ_s004__c6.jpg"
+   }
+  },
+  {
+   "id": "yt__20260601_pIx3iVzxeqQ_1390s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "normal",
+   "source": {
+    "type": "yt",
+    "video": "20260601_pIx3iVzxeqQ",
+    "second": 1390,
+    "bench_id": "ytsheet__20260601_pIx3iVzxeqQ_s047__c3.jpg"
+   }
+  },
+  {
+   "id": "yt__20260601_pIx3iVzxeqQ_555s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "busy",
+   "source": {
+    "type": "yt",
+    "video": "20260601_pIx3iVzxeqQ",
+    "second": 555,
+    "bench_id": "ytsheet__20260601_pIx3iVzxeqQ_s019__c4.jpg"
+   }
+  },
+  {
+   "id": "yt__20260607_UCXXWMDgv78_1545s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "empty",
+   "source": {
+    "type": "yt",
+    "video": "20260607_UCXXWMDgv78",
+    "second": 1545,
+    "bench_id": "ytsheet__20260607_UCXXWMDgv78_s052__c4.jpg"
+   }
+  },
+  {
+   "id": "yt__20260615_XpOpUZLiHyY_1415s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "empty",
+   "source": {
+    "type": "yt",
+    "video": "20260615_XpOpUZLiHyY",
+    "second": 1415,
+    "bench_id": "ytsheet__20260615_XpOpUZLiHyY_s048__c2.jpg"
+   }
+  },
+  {
+   "id": "yt__20260615_XpOpUZLiHyY_1565s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "empty",
+   "source": {
+    "type": "yt",
+    "video": "20260615_XpOpUZLiHyY",
+    "second": 1565,
+    "bench_id": "ytsheet__20260615_XpOpUZLiHyY_s053__c2.jpg"
+   }
+  },
+  {
+   "id": "yt__20260615_XpOpUZLiHyY_180s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "normal",
+   "source": {
+    "type": "yt",
+    "video": "20260615_XpOpUZLiHyY",
+    "second": 180,
+    "bench_id": "ytsheet__20260615_XpOpUZLiHyY_s007__c1.jpg"
+   }
+  },
+  {
+   "id": "yt__20260615_XpOpUZLiHyY_985s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "empty",
+   "source": {
+    "type": "yt",
+    "video": "20260615_XpOpUZLiHyY",
+    "second": 985,
+    "bench_id": "ytsheet__20260615_XpOpUZLiHyY_s033__c6.jpg"
+   }
+  },
+  {
+   "id": "yt__20260713_CzykZ3hUMwA_1895s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "small",
+   "source": {
+    "type": "yt",
+    "video": "20260713_CzykZ3hUMwA",
+    "second": 1895,
+    "bench_id": "ytsheet__20260713_CzykZ3hUMwA_s064__c2.jpg"
+   }
+  },
+  {
+   "id": "yt__20260713_CzykZ3hUMwA_2530s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "normal",
+   "source": {
+    "type": "yt",
+    "video": "20260713_CzykZ3hUMwA",
+    "second": 2530,
+    "bench_id": "ytsheet__20260713_CzykZ3hUMwA_s085__c3.jpg"
+   }
+  },
+  {
+   "id": "yt__20260713_CzykZ3hUMwA_2865s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "busy",
+   "source": {
+    "type": "yt",
+    "video": "20260713_CzykZ3hUMwA",
+    "second": 2865,
+    "bench_id": "ytsheet__20260713_CzykZ3hUMwA_s096__c4.jpg"
+   }
+  },
+  {
+   "id": "yt__20260713_CzykZ3hUMwA_455s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "busy",
+   "source": {
+    "type": "yt",
+    "video": "20260713_CzykZ3hUMwA",
+    "second": 455,
+    "bench_id": "ytsheet__20260713_CzykZ3hUMwA_s016__c2.jpg"
+   }
+  },
+  {
+   "id": "yt__20260720_0TPhpVefeAI_1140s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "empty",
+   "source": {
+    "type": "yt",
+    "video": "20260720_0TPhpVefeAI",
+    "second": 1140,
+    "bench_id": "ytsheet__20260720_0TPhpVefeAI_s039__c1.jpg"
+   }
+  },
+  {
+   "id": "yt__20260720_0TPhpVefeAI_1710s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "busy",
+   "source": {
+    "type": "yt",
+    "video": "20260720_0TPhpVefeAI",
+    "second": 1710,
+    "bench_id": "ytsheet__20260720_0TPhpVefeAI_s058__c1.jpg"
+   }
+  },
+  {
+   "id": "yt__20260720_0TPhpVefeAI_2935s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "small",
+   "source": {
+    "type": "yt",
+    "video": "20260720_0TPhpVefeAI",
+    "second": 2935,
+    "bench_id": "ytsheet__20260720_0TPhpVefeAI_s098__c6.jpg"
+   }
+  },
+  {
+   "id": "yt__20260720_0TPhpVefeAI_625s.jpg",
+   "native": [
+    1920,
+    1080
+   ],
+   "stratum": "busy",
+   "source": {
+    "type": "yt",
+    "video": "20260720_0TPhpVefeAI",
+    "second": 625,
+    "bench_id": "ytsheet__20260720_0TPhpVefeAI_s021__c6.jpg"
+   }
+  }
+ ]
+}
