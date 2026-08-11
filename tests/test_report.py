@@ -112,3 +112,26 @@ def test_render_overlay_tolerates_inverted_boxes(tmp_path):
     out = tmp_path / "overlay.jpg"
     rp.render_overlay(str(src), [[500, 600, 400, 300]], [], str(out))
     assert out.exists()
+
+
+def test_render_html_includes_charts():
+    scores = {"generated": "t", "n_images": 2, "models": {
+        "m1": {"rungs": {"480": {
+            "presence": {"adidas": {"p": 1.0, "r": 1.0, "f1": 1.0, "tp": 2, "fp": 0, "fn": 0},
+                         "_macro_f1": 1.0},
+            "boxes": {"hit03": 0.8, "hit05": 0.5, "mean_iou": 0.7, "n_truth": 4, "n_det": 4},
+            "attrs": {"size_acc": 1.0, "placement_acc": 1.0, "n_matched": 3},
+            "ops": {"lat_p50": 2.0, "lat_p95": 3.0, "cost_per_frame": 0.004,
+                    "parse_fail_rate": 0.0, "n_frames": 2}},
+            "240": {
+            "presence": {"adidas": {"p": 0.5, "r": 0.5, "f1": 0.5, "tp": 1, "fp": 1, "fn": 1},
+                         "_macro_f1": 0.5},
+            "boxes": {"hit03": None, "hit05": None, "mean_iou": None, "n_truth": 0, "n_det": 1},
+            "attrs": {"size_acc": None, "placement_acc": None, "n_matched": 0},
+            "ops": {"lat_p50": 1.0, "lat_p95": 2.0, "cost_per_frame": 0.002,
+                    "parse_fail_rate": 0.5, "n_frames": 2}}},
+            "retention": {"presence_f1": {"240": 0.5}, "hit03": {"240": None}}}}}
+    out = rp._render_html(scores, [])
+    assert "<svg" in out and "Cost vs quality" in out
+    assert "Resolution robustness" in out and "Per-brand presence F1" in out
+    assert "data-tt=" in out

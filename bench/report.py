@@ -122,23 +122,255 @@ def _fmt(v):
     return "-" if v is None else v
 
 
-def _svg_curve(rung_scores):
-    rungs = sorted((int(r) for r in rung_scores), reverse=True)
+# Chart palette, validated for the dark card surface (#1a1a19) with the
+# dataviz validator: all six pass lightness band, chroma floor, CVD
+# separation, normal-vision floor, and 3:1 contrast. Order is fixed.
+SERIES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300"]
+SEQ = ["#0d366b", "#104281", "#184f95", "#1c5cab", "#256abf", "#2a78d6",
+       "#3987e5", "#5598e7", "#6da7ec", "#86b6ef", "#9ec5f4"]  # low -> high on dark
+INK, INK2, MUTED = "#eeeeee", "#c3c2b7", "#898781"
+GRID, SURFACE, DIM = "#2c2c2a", "#1a1a19", "#4a4a46"
+
+
+def _model_stats(scores):
+    """Per-model summary at the top rung, sorted by presence F1 desc."""
+    import math
+    out = []
+    for name, m in scores["models"].items():
+        rungs = {int(k): v for k, v in m["rungs"].items()}
+        top = rungs[max(rungs)]
+        cost1k = (top["ops"]["cost_per_frame"] or 0) * 1000
+        out.append({
+            "name": name, "rungs": rungs,
+            "f1": top["presence"]["_macro_f1"] or 0.0,
+            "miou": top["boxes"]["mean_iou"],
+            "hit03": top["boxes"]["hit03"],
+            "cost1k": cost1k,
+            "logc": math.log10(max(cost1k, 0.01)),
+            "spend": sum((r["ops"]["cost_per_frame"] or 0) * r["ops"]["n_frames"]
+                         for r in rungs.values()),
+            "brands": {b: v for b, v in top["presence"].items()
+                       if not b.startswith("_")},
+        })
+    out.sort(key=lambda d: -d["f1"])
+    return out
+
+
+def _place_labels(labels, y_min, y_max):
+    """Greedy vertical collision resolver for point labels.
+
+    labels: [{x, y, text, anchor}] with y as the desired baseline. Labels whose
+    horizontal spans overlap are pushed apart vertically by 13px steps.
+    """
+    est = lambda t: len(t) * 6.2
+    spans = []
+    for lb in labels:
+        w = est(lb["text"])
+        x0 = lb["x"] - w if lb["anchor"] == "end" else lb["x"]
+        spans.append((x0, x0 + w))
+    order = sorted(range(len(labels)), key=lambda i: labels[i]["y"])
+    placed = []
+    for i in order:
+        y = max(y_min, min(labels[i]["y"], y_max))
+        for j, yj in placed:
+            if not (spans[i][1] < spans[j][0] or spans[j][1] < spans[i][0]):
+                if abs(y - yj) < 13:
+                    y = yj + 13
+        placed.append((i, y))
+        labels[i]["y"] = y
+    return labels
+
+
+def _label_svg(labels):
+    return "".join(
+        f'<text x="{lb["x"]:.1f}" y="{lb["y"]:.1f}" font-size="11" fill="{INK2}" '
+        f'text-anchor="{lb["anchor"]}" data-model="{html.escape(lb.get("model", lb["text"]))}">'
+        f'{html.escape(lb["text"])}</text>' for lb in labels)
+
+
+def _dot(x, y, color, tip, r=5, model=""):
+    dm = f' data-model="{html.escape(model)}"' if model else ""
+    return (f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r}" fill="{color}" '
+            f'stroke="{SURFACE}" stroke-width="2" data-tt="{html.escape(tip)}"{dm}/>')
+
+
+def _axis_text(x, y, s, anchor="middle"):
+    return (f'<text x="{x:.1f}" y="{y:.1f}" font-size="11" fill="{MUTED}" '
+            f'text-anchor="{anchor}" style="font-variant-numeric:tabular-nums">'
+            f'{html.escape(str(s))}</text>')
+
+
+def _chart_cost_quality(stats):
+    """Scatter: cost per 1,000 frames (log x) vs presence F1; Pareto in orange."""
+    import math
+    W, H, L, R, T, B = 640, 360, 56, 24, 16, 44
+    pts = [s for s in stats if s["cost1k"] > 0]
+    x0, x1 = math.log10(0.08), math.log10(150)
+    sx = lambda v: L + (v - x0) / (x1 - x0) * (W - L - R)
+    sy = lambda v: T + (1 - v / 0.9) * (H - T - B)
+    frontier, best = set(), 0.0
+    for s in sorted(pts, key=lambda d: d["cost1k"]):
+        if s["f1"] > max(best, 0.0):
+            frontier.add(s["name"]); best = s["f1"]
+    g = []
+    for gv in (0.2, 0.4, 0.6, 0.8):
+        g.append(f'<line x1="{L}" y1="{sy(gv):.1f}" x2="{W-R}" y2="{sy(gv):.1f}" stroke="{GRID}"/>')
+        g.append(_axis_text(L - 8, sy(gv) + 4, f"{gv:.1f}", "end"))
+    for tv, lab in ((0.1, "$0.10"), (1, "$1"), (10, "$10"), (100, "$100")):
+        g.append(f'<line x1="{sx(math.log10(tv)):.1f}" y1="{T}" x2="{sx(math.log10(tv)):.1f}" y2="{H-B}" stroke="{GRID}"/>')
+        g.append(_axis_text(sx(math.log10(tv)), H - B + 16, lab))
+    g.append(_axis_text((L + W - R) / 2, H - 6, "cost per 1,000 frames (log)"))
+    front_line = sorted((s for s in pts if s["name"] in frontier), key=lambda d: d["logc"])
+    g.append('<polyline points="' + " ".join(f"{sx(s['logc']):.1f},{sy(s['f1']):.1f}" for s in front_line)
+             + f'" fill="none" stroke="{SERIES[1]}" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>')
+    labels = []
+    for s in sorted(pts, key=lambda d: d["name"] in frontier):
+        tip = f"{s['name']}: F1 {s['f1']:.3f}, ${s['cost1k']:.2f}/1k frames"
+        color = SERIES[1] if s["name"] in frontier else SERIES[0]
+        g.append(_dot(sx(s["logc"]), sy(s["f1"]), color, tip, model=s["name"]))
+        if s["name"] in frontier or s["name"] == "qwen3.8-max":
+            anchor, dx = ("end", -9) if s["logc"] > x1 - 0.7 else ("start", 9)
+            labels.append({"x": sx(s["logc"]) + dx, "y": sy(s["f1"]) + 4,
+                           "text": s["name"], "anchor": anchor, "model": s["name"]})
+    g.append(_label_svg(_place_labels(labels, T + 10, H - B - 4)))
+    return (f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Cost versus presence F1 scatter">'
+            + "".join(g) + "</svg>")
+
+
+def _chart_presence_boxes(stats):
+    """Scatter: presence F1 (x) vs mean IoU (y). Finds brands vs draws boxes."""
+    W, H, L, R, T, B = 640, 360, 56, 24, 16, 44
+    pts = [s for s in stats if s["miou"] is not None]
+    sx = lambda v: L + v / 0.9 * (W - L - R)
+    sy = lambda v: T + (1 - v) * (H - T - B)
+    g = []
+    for gv in (0.2, 0.4, 0.6, 0.8):
+        g.append(f'<line x1="{L}" y1="{sy(gv):.1f}" x2="{W-R}" y2="{sy(gv):.1f}" stroke="{GRID}"/>')
+        g.append(_axis_text(L - 8, sy(gv) + 4, f"{gv:.1f}", "end"))
+        g.append(f'<line x1="{sx(gv):.1f}" y1="{T}" x2="{sx(gv):.1f}" y2="{H-B}" stroke="{GRID}"/>')
+        g.append(_axis_text(sx(gv), H - B + 16, f"{gv:.1f}"))
+    g.append(_axis_text((L + W - R) / 2, H - 6, "presence F1 at the top rung"))
+    g.append(f'<text x="14" y="{(T + H - B) / 2:.0f}" font-size="11" fill="{MUTED}" text-anchor="middle" '
+             f'transform="rotate(-90 14 {(T + H - B) / 2:.0f})">mean IoU of matched boxes</text>')
+    labeled = {s["name"] for s in sorted(pts, key=lambda d: -(d["miou"] or 0))[:2]} \
+        | {s["name"] for s in sorted(pts, key=lambda d: -d["f1"])[:1]} \
+        | {"claude-sonnet-5", "qwen3.8-max"}
+    labels = []
+    for s in pts:
+        tip = f"{s['name']}: F1 {s['f1']:.3f}, mean IoU {s['miou']:.3f}, hit@0.3 {s['hit03'] if s['hit03'] is not None else '-'}"
+        g.append(_dot(sx(s["f1"]), sy(s["miou"]), SERIES[0], tip, model=s["name"]))
+        if s["name"] in labeled:
+            anchor, dx = ("end", -9) if s["f1"] > 0.7 else ("start", 9)
+            labels.append({"x": sx(s["f1"]) + dx, "y": sy(s["miou"]) + 4,
+                           "text": s["name"], "anchor": anchor, "model": s["name"]})
+    g.append(_label_svg(_place_labels(labels, T + 10, H - B - 4)))
+    return (f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Presence versus box quality scatter">'
+            + "".join(g) + "</svg>")
+
+
+def _chart_retention(stats):
+    """Lines: presence F1 across resolution rungs; top 6 colored, rest gray."""
+    W, H, L, R, T, B = 1180, 380, 56, 150, 16, 44
+    rungs = sorted({rg for s in stats for rg in s["rungs"]}, reverse=True)
     if len(rungs) < 2:
-        return ""
-    pts = []
+        return "", ""
+    sx = lambda i: L + i / (len(rungs) - 1) * (W - L - R)
+    sy = lambda v: T + (1 - v / 0.9) * (H - T - B)
+    top6 = [s["name"] for s in stats[:6]]
+    g = []
+    for gv in (0.2, 0.4, 0.6, 0.8):
+        g.append(f'<line x1="{L}" y1="{sy(gv):.1f}" x2="{W-R}" y2="{sy(gv):.1f}" stroke="{GRID}"/>')
+        g.append(_axis_text(L - 8, sy(gv) + 4, f"{gv:.1f}", "end"))
     for i, rg in enumerate(rungs):
-        f1 = rung_scores[str(rg)]["presence"]["_macro_f1"] or 0
-        pts.append(f"{20 + i * (260 / (len(rungs) - 1)):.0f},{110 - f1 * 100:.0f}")
-    labels_x = " ".join(
-        f'<text x="{20 + i * (260 / (len(rungs) - 1)):.0f}" y="124" '
-        f'font-size="9" text-anchor="middle" fill="#888">{rg}</text>'
-        for i, rg in enumerate(rungs))
-    return (f'<svg width="300" height="130" viewBox="0 0 300 130">'
-            f'<line x1="20" y1="10" x2="20" y2="110" stroke="#444"/>'
-            f'<line x1="20" y1="110" x2="280" y2="110" stroke="#444"/>'
-            f'<polyline points="{" ".join(pts)}" fill="none" '
-            f'stroke="#2563eb" stroke-width="2"/>{labels_x}</svg>')
+        g.append(_axis_text(sx(i), H - B + 16, f"{rg}p"))
+    g.append(_axis_text((L + W - R) / 2, H - 6, "resolution rung (image height)"))
+    for s in reversed(stats):  # gray lines first, colored on top
+        vals = [(i, s["rungs"][rg]["presence"]["_macro_f1"] or 0)
+                for i, rg in enumerate(rungs) if rg in s["rungs"]]
+        if len(vals) < 2:
+            continue
+        line = " ".join(f"{sx(i):.1f},{sy(v):.1f}" for i, v in vals)
+        dm = html.escape(s["name"])
+        if s["name"] in top6:
+            c = SERIES[top6.index(s["name"])]
+            seg = [f'<polyline points="{line}" fill="none" stroke="{c}" stroke-width="2" '
+                   f'stroke-linejoin="round" stroke-linecap="round"/>']
+            for i, v in vals:
+                seg.append(_dot(sx(i), sy(v), c, f"{s['name']} at {rungs[i]}p: F1 {v:.3f}", r=4))
+            if s["name"] == top6[0]:
+                seg.append(f'<text x="{W-R+8}" y="{sy(vals[-1][1]) + 4:.1f}" font-size="11" '
+                           f'fill="{INK2}">{dm}</text>')
+            g.append(f'<g data-model="{dm}">' + "".join(seg) + "</g>")
+        else:
+            g.append(f'<g data-model="{dm}"><polyline points="{line}" fill="none" stroke="{DIM}" '
+                     f'stroke-width="1" opacity="0.8"><title>{dm}</title></polyline></g>')
+    legend = "".join(
+        f'<span class="chip"><i style="background:{SERIES[i]}"></i>{html.escape(n)}</span>'
+        for i, n in enumerate(top6)) + \
+        f'<span class="chip"><i style="background:{DIM}"></i>{len(stats) - len(top6)} others</span>'
+    svg = (f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Presence F1 across resolution rungs">'
+           + "".join(g) + "</svg>")
+    return svg, legend
+
+
+def _chart_brand_heatmap(stats):
+    """Heatmap: per-brand presence F1 at the top rung, one row per model."""
+    brands = {}
+    for s in stats:
+        for b, v in s["brands"].items():
+            brands.setdefault(b, 0)
+            brands[b] = max(brands[b], v.get("tp", 0) + v.get("fn", 0))
+    order = sorted(brands, key=lambda b: -brands[b])
+    CW, RH, L, T = 118, 24, 170, 40
+    W = L + CW * len(order) + 16
+    H = T + RH * len(stats) + 8
+    g = []
+    for j, b in enumerate(order):
+        g.append(_axis_text(L + j * CW + CW / 2, T - 20, b))
+        g.append(_axis_text(L + j * CW + CW / 2, T - 7, f"n={brands[b]} frames"))
+    for i, s in enumerate(stats):
+        y = T + i * RH
+        g.append(f'<g data-model="{html.escape(s["name"])}">')
+        g.append(f'<text x="{L - 8}" y="{y + RH / 2 + 4}" font-size="11" fill="{INK2}" '
+                 f'text-anchor="end">{html.escape(s["name"])}</text>')
+        for j, b in enumerate(order):
+            v = s["brands"].get(b, {}).get("f1")
+            x = L + j * CW
+            if v is None:
+                g.append(f'<rect x="{x}" y="{y}" width="{CW - 2}" height="{RH - 2}" fill="{SURFACE}"/>')
+                g.append(_axis_text(x + CW / 2, y + RH / 2 + 4, "-"))
+                continue
+            idx = min(len(SEQ) - 1, max(0, round(v * (len(SEQ) - 1))))
+            ink = "#0b0b0b" if idx >= 7 else "#dfe9f7"
+            tip = f"{s['name']} / {b}: F1 {v:.3f}"
+            g.append(f'<rect x="{x}" y="{y}" width="{CW - 2}" height="{RH - 2}" '
+                     f'fill="{SEQ[idx]}" data-tt="{html.escape(tip)}"/>')
+            g.append(f'<text x="{x + CW / 2}" y="{y + RH / 2 + 4}" font-size="11" fill="{ink}" '
+                     f'text-anchor="middle" style="font-variant-numeric:tabular-nums" '
+                     f'pointer-events="none">{v:.2f}</text>')
+        g.append("</g>")
+    return (f'<svg viewBox="0 0 {W} {H}" width="{W}" role="img" '
+            f'aria-label="Per-brand presence F1 heatmap">' + "".join(g) + "</svg>")
+
+
+def _stat_tiles(scores, stats):
+    calls = sum(r["ops"]["n_frames"] for s in stats for r in s["rungs"].values())
+    spend = sum(s["spend"] for s in stats)
+    best = stats[0]
+    value = min((s for s in stats if s["f1"] >= best["f1"] - 0.05),
+                key=lambda s: s["cost1k"], default=best)
+    tiles = [
+        ("models", str(len(stats)), "x 5 resolution rungs"),
+        ("images", str(scores["n_images"]), "human-labeled truth"),
+        ("API calls", f"{calls:,}", "all recorded and resumable"),
+        ("total spend", f"${spend:,.2f}", "from real token usage"),
+        ("best F1", f'{best["f1"]:.3f}', best["name"]),
+        ("value pick", value["name"], f'F1 {value["f1"]:.3f} at ${value["cost1k"]:.2f}/1k'),
+    ]
+    return "".join(
+        f'<div class="tile"><div class="tl">{html.escape(l)}</div>'
+        f'<div class="tv">{html.escape(v)}</div>'
+        f'<div class="ts">{html.escape(s)}</div></div>' for l, v, s in tiles)
 
 
 def _render_html(scores, entries):
@@ -149,16 +381,43 @@ def _render_html(scores, entries):
             per_brand = ", ".join(f'{k} {_fmt(v["f1"])}' for k, v in rs["presence"].items()
                                   if not k.startswith("_"))
             rows.append(
-                f"<tr><td>{html.escape(model)}</td><td>{rung}</td>"
+                f'<tr data-model="{html.escape(model)}"><td>{html.escape(model)}</td><td>{rung}</td>'
                 f"<td>{_fmt(rs['presence']['_macro_f1'])}</td>"
                 f"<td title='{html.escape(per_brand)}'>{_fmt(b['hit03'])}</td>"
                 f"<td>{_fmt(b['hit05'])}</td><td>{_fmt(b['mean_iou'])}</td>"
                 f"<td>{_fmt(a['size_acc'])}</td><td>{_fmt(a['placement_acc'])}</td>"
                 f"<td>{_fmt(o['cost_per_frame'])}</td><td>{_fmt(o['lat_p50'])}</td>"
                 f"<td>{_fmt(o['parse_fail_rate'])}</td></tr>")
-    curves = "".join(
-        f'<div class="curve"><h3>{html.escape(m)}</h3>{_svg_curve(s["rungs"])}</div>'
-        for m, s in sorted(scores["models"].items()))
+    stats = _model_stats(scores)
+    retention_svg, retention_legend = _chart_retention(stats)
+    filter_bar = (
+        '<div class="fbar"><span class="fbtn" id="fall">all</span>'
+        '<span class="fbtn" id="fnone">none</span>'
+        + "".join(f'<button class="fchip on" data-fmodel="{html.escape(s["name"])}">'
+                  f'{html.escape(s["name"])}</button>' for s in stats)
+        + "</div>")
+    charts = f"""
+{filter_bar}
+<div class="tiles">{_stat_tiles(scores, stats)}</div>
+<div class="cards">
+<div class="card"><h3>Cost vs quality</h3>
+<p class="sub">Presence F1 at the top rung against price per 1,000 frames.
+Orange marks the Pareto frontier: nothing cheaper scores higher.</p>
+{_chart_cost_quality(stats)}</div>
+<div class="card"><h3>Finding brands vs drawing boxes</h3>
+<p class="sub">Presence F1 against mean IoU of matched boxes. Top right is the
+goal; the bottom right models know a brand is present but cannot localize it.</p>
+{_chart_presence_boxes(stats)}</div>
+</div>
+<div class="card"><h3>Resolution robustness</h3>
+<p class="sub">Presence F1 as the same screenshots shrink from 1080p to 144p.
+The flatter the line, the more resolution-proof the model.</p>
+<div class="legend">{retention_legend}</div>
+{retention_svg}</div>
+<div class="card"><h3>Per-brand presence F1 (top rung)</h3>
+<p class="sub">Darker is worse, lighter is better. Columns are ordered by how
+many truth frames contain the brand; treat low-n columns as anecdotes.</p>
+<div style="overflow-x:auto">{_chart_brand_heatmap(stats)}</div></div>"""
     details_sections = []
     for model, s in sorted(scores["models"].items()):
         detail_rows = []
@@ -170,7 +429,8 @@ def _render_html(scores, entries):
                         f"<td>{_fmt(v.get('r'))}</td><td>{_fmt(v.get('f1'))}</td></tr>")
         if detail_rows:
             details_sections.append(
-                f'<details><summary>{html.escape(model)} per-brand F1</summary>'
+                f'<details data-model="{html.escape(model)}">'
+                f'<summary>{html.escape(model)} per-brand F1</summary>'
                 f'<table style="margin:8px 0;border-collapse:collapse"><thead><tr>'
                 f'<th style="border:1px solid #333;padding:4px 8px;text-align:left">brand</th>'
                 f'<th style="border:1px solid #333;padding:4px 8px;text-align:left">rung</th>'
@@ -179,31 +439,83 @@ def _render_html(scores, entries):
                 f'<th style="border:1px solid #333;padding:4px 8px">f1</th></tr></thead>'
                 f'<tbody>{"".join(detail_rows)}</tbody></table></details>')
     gallery = "".join(
-        f'<figure><img src="{html.escape(e["img"])}" loading="lazy">'
+        f'<figure data-model="{html.escape(e["model"])}">'
+        f'<img src="{html.escape(e["img"])}" loading="lazy">'
         f'<figcaption>{html.escape(e["model"])}: {e["kind"]} '
         f'({html.escape(e["brand"])}) on {html.escape(e["image"])}</figcaption></figure>'
         for e in entries)
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
 <title>Logo detection leaderboard</title><style>
-body{{font:14px system-ui;margin:20px;background:#111;color:#eee}}
+body{{font:14px system-ui;margin:20px;background:#111;color:#eee;max-width:1280px}}
 table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #333;
-padding:4px 8px;text-align:right}}th{{cursor:pointer;background:#1b1b1b}}
+padding:4px 8px;text-align:right;font-variant-numeric:tabular-nums}}
+th{{cursor:pointer;background:#1b1b1b}}
 td:first-child,th:first-child{{text-align:left}}
-.curves{{display:flex;flex-wrap:wrap;gap:16px}}.curve h3{{margin:4px 0;font-size:13px}}
+.tiles{{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:16px 0}}
+.tile{{background:#1a1a19;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px 14px}}
+.tl{{font-size:11px;color:#898781;letter-spacing:.04em;text-transform:uppercase}}
+.tv{{font-size:24px;font-weight:600;margin:2px 0}}
+.ts{{font-size:12px;color:#c3c2b7}}
+.cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(540px,1fr));gap:16px;margin:16px 0}}
+.card{{background:#1a1a19;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:16px;margin:16px 0}}
+.cards .card{{margin:0}}
+.card h3{{margin:0 0 4px;font-size:15px}}
+.sub{{color:#898781;font-size:12px;margin:0 0 12px}}
+svg{{max-width:100%;height:auto;display:block}}
+.legend{{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px}}
+.chip{{font-size:12px;color:#c3c2b7;display:inline-flex;align-items:center;gap:6px}}
+.chip i{{width:10px;height:10px;border-radius:2px;display:inline-block}}
+#tt{{position:fixed;pointer-events:none;background:#0b0b0b;color:#eee;border:1px solid rgba(255,255,255,.15);
+border-radius:6px;padding:6px 10px;font-size:12px;display:none;z-index:10;max-width:320px}}
+.fbar{{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:12px 0;position:sticky;top:0;
+background:#111;padding:8px 0;z-index:5}}
+.fchip{{font:12px system-ui;background:#1a1a19;color:#c3c2b7;border:1px solid rgba(255,255,255,.12);
+border-radius:12px;padding:3px 10px;cursor:pointer}}
+.fchip.on{{background:#24303f;color:#eee;border-color:#3987e5}}
+.fbtn{{font-size:12px;color:#898781;cursor:pointer;text-decoration:underline;margin-right:4px}}
+[data-model].fdim{{opacity:0.12;pointer-events:none}}
+tr.fhide,figure.fhide,details.fhide{{display:none}}
 figure{{display:inline-block;margin:8px;max-width:420px}}img{{max-width:100%}}
 figcaption{{font-size:12px;color:#aaa}}
 </style></head><body>
 <h1>Logo detection leaderboard</h1>
-<p>Truth boxes are green, model boxes are red in the gallery. Hover the hit@0.3
-column for per-brand presence F1. Open ui/review.html via server.py to record
-verdicts on disagreements.</p>
+<p class="sub">Hover any dot, line vertex, or heatmap cell for details.
+Truth boxes are green, model boxes red in the gallery. Open ui/review.html via
+server.py to record verdicts on disagreements.</p>
+{charts}
+<h2>Full results table</h2>
 <table id="lb"><thead><tr><th>model</th><th>rung</th><th>presence F1</th>
 <th>hit@0.3</th><th>hit@0.5</th><th>mean IoU</th><th>size acc</th>
 <th>placement acc</th><th>$/frame</th><th>lat p50</th><th>parse fail</th></tr>
 </thead><tbody>{"".join(rows)}</tbody></table>
 <h2>Per-brand F1 by model</h2>{"".join(details_sections)}
-<h2>Presence F1 by resolution</h2><div class="curves">{curves}</div>
 <h2>Disagreement gallery ({len(entries)} entries)</h2>{gallery}
+<div id="tt"></div>
+<script>
+const active=new Set([...document.querySelectorAll('.fchip')].map(c=>c.dataset.fmodel));
+function applyFilter(){{
+  document.querySelectorAll('.fchip').forEach(c=>
+    c.classList.toggle('on',active.has(c.dataset.fmodel)));
+  document.querySelectorAll('[data-model]').forEach(el=>{{
+    const on=active.has(el.dataset.model);
+    if(el.tagName==='TR'||el.tagName==='FIGURE'||el.tagName==='DETAILS')
+      el.classList.toggle('fhide',!on);
+    else el.classList.toggle('fdim',!on);
+  }});
+}}
+document.querySelectorAll('.fchip').forEach(c=>c.onclick=()=>{{
+  const m=c.dataset.fmodel;
+  active.has(m)?active.delete(m):active.add(m);applyFilter();}});
+document.getElementById('fall').onclick=()=>{{
+  document.querySelectorAll('.fchip').forEach(c=>active.add(c.dataset.fmodel));applyFilter();}};
+document.getElementById('fnone').onclick=()=>{{active.clear();applyFilter();}};
+const tt=document.getElementById('tt');
+document.querySelectorAll('[data-tt]').forEach(el=>{{
+el.addEventListener('mousemove',e=>{{tt.textContent=el.dataset.tt;
+tt.style.display='block';tt.style.left=Math.min(e.clientX+14,innerWidth-330)+'px';
+tt.style.top=(e.clientY+14)+'px';}});
+el.addEventListener('mouseleave',()=>tt.style.display='none');}});
+</script>
 <script>
 document.querySelectorAll('#lb th').forEach((th,i)=>th.onclick=()=>{{
 const tb=document.querySelector('#lb tbody');
