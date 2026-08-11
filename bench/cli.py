@@ -23,10 +23,21 @@ def load_labels(root):
 
 
 def load_raw(root):
+    """Load results/raw/*.jsonl, deduped to the last row per (image, rung).
+
+    A retried (image, rung) pair (see bench.run._load_done) can leave more
+    than one row for the same key in the file — an old failed attempt
+    followed by a later successful one. Scoring should only see the most
+    recent attempt, so keep the last row per key in file order.
+    """
     raw = {}
     for p in sorted(glob.glob(os.path.join(root, "results", "raw", "*.jsonl"))):
         name = os.path.basename(p)[:-6]
-        raw[name] = [json.loads(l) for l in open(p)]
+        by_key = {}
+        for l in open(p):
+            r = json.loads(l)
+            by_key[(r["image"], r["rung"])] = r
+        raw[name] = list(by_key.values())
     return raw
 
 

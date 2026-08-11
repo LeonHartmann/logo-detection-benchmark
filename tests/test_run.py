@@ -152,6 +152,37 @@ def test_concurrency_cap_is_enforced(tmp_path):
         f"fakeB exceeded cap: max_in_flight={providers['fakeB'].max_in_flight}, cap=4"
 
 
+def test_failed_row_is_retried_and_appended_on_rerun(tmp_path):
+    """An API-error row (error set) must not stick as permanently 'done':
+    the next `bench run` should retry that (image, rung) and append a new
+    row, leaving the old failed row in place (dedup happens at read time,
+    in bench.cli.load_raw, not here)."""
+    manifest = setup_repo(tmp_path, n_images=1)
+    models = [ModelCfg("fake-model", "fake", "fake-1")]
+
+    # First run: the provider errors on every attempt (max_retries=2) -> a
+    # failed row with `error` set is written.
+    fp1 = FakeProvider([RuntimeError("boom"), RuntimeError("boom")])
+    stats1 = rn.run_benchmark(models, BENCH, BRANDS, manifest, str(tmp_path),
+                              only_rungs=[480], provider_factory=lambda m, b: fp1,
+                              backoff_base=0)
+    raw = tmp_path / "results" / "raw" / "fake-model.jsonl"
+    rows1 = [json.loads(l) for l in open(raw)]
+    assert len(rows1) == 1 and rows1[0]["error"] and stats1["failed"] == 1
+
+    # Second run: the provider now succeeds. The failed (image, rung) must
+    # be retried (not skipped), producing a second, successful row.
+    fp2 = FakeProvider([])
+    stats2 = rn.run_benchmark(models, BENCH, BRANDS, manifest, str(tmp_path),
+                              only_rungs=[480], provider_factory=lambda m, b: fp2,
+                              backoff_base=0)
+    rows2 = [json.loads(l) for l in open(raw)]
+    assert stats2["done"] == 1 and stats2["skipped"] == 0
+    assert len(rows2) == 2                       # old failed row still on disk, plus the new one
+    assert rows2[0]["error"] and not rows2[0]["parse_ok"]
+    assert rows2[1]["error"] is None and rows2[1]["parse_ok"] is True
+
+
 def test_worker_file_error_doesnt_crash_run(tmp_path, monkeypatch):
     """Verify that worker-level failures (e.g., missing file) are caught and recorded."""
     import builtins

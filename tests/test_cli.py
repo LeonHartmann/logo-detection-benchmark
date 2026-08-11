@@ -29,6 +29,34 @@ def test_helpers_load(tmp_path):
     assert list(raw) == ["m1"] and len(raw["m1"]) == 1
 
 
+def test_load_raw_dedupes_by_image_rung_keeping_last(tmp_path):
+    """A retried (image, rung) pair leaves two rows in the same model's
+    JSONL (an old failed attempt, then a later successful one). load_raw
+    must collapse those to one row per (image, rung) -- the last one on
+    disk -- so scoring doesn't double-count a frame."""
+    (tmp_path / "results" / "raw").mkdir(parents=True)
+    failed = {"image": "a.jpg", "rung": 480, "model": "m1", "detections": None,
+              "parse_ok": False, "retried": False, "latency_s": 0.0,
+              "input_tokens": 0, "output_tokens": 0, "error": "boom", "ts": "t1"}
+    retried_ok = {"image": "a.jpg", "rung": 480, "model": "m1", "detections": [],
+                  "parse_ok": True, "retried": False, "latency_s": 1.0,
+                  "input_tokens": 1, "output_tokens": 1, "error": None, "ts": "t2"}
+    other = {"image": "b.jpg", "rung": 240, "model": "m1", "detections": [],
+              "parse_ok": True, "retried": False, "latency_s": 1.0,
+              "input_tokens": 1, "output_tokens": 1, "error": None, "ts": "t3"}
+    with open(tmp_path / "results" / "raw" / "m1.jsonl", "w") as f:
+        for row in (failed, retried_ok, other):
+            f.write(json.dumps(row) + "\n")
+
+    raw = cli.load_raw(str(tmp_path))
+    rows = raw["m1"]
+    assert len(rows) == 2                     # one per (image, rung), not three
+    by_key = {(r["image"], r["rung"]): r for r in rows}
+    assert by_key[("a.jpg", 480)]["ts"] == "t2"       # the LAST row for that key wins
+    assert by_key[("a.jpg", 480)]["error"] is None
+    assert by_key[("b.jpg", 240)]["ts"] == "t3"
+
+
 def test_parser_has_all_subcommands():
     parser = cli.build_parser()
     subs = parser._subparsers._group_actions[0].choices

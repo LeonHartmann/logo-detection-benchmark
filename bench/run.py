@@ -12,11 +12,22 @@ from bench.resize import derive, rungs_for
 
 
 def _load_done(path):
+    """(image, rung) pairs that don't need another API call.
+
+    A row with a truthy `error` means the provider call itself failed (after
+    the runner's own retries) — that's retried on the next `bench run`, not
+    treated as permanently done. A row with `error: null` but `parse_ok:
+    false` means the call succeeded but the model's output didn't parse;
+    that stays done (retrying an API that answered, just badly, wastes
+    budget without a code fix).
+    """
     done = set()
     if os.path.exists(path):
         for line in open(path):
             try:
                 r = json.loads(line)
+                if r.get("error"):
+                    continue
                 done.add((r["image"], r["rung"]))
             except (json.JSONDecodeError, KeyError):
                 continue
