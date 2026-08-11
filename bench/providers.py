@@ -54,15 +54,30 @@ class OpenAICompatible:
         self.max_tokens = bench["max_tokens"]
 
     def call(self, text, images):
+        return self.call_messages([{"role": "user", "parts":
+                                    [("image", i) for i in images] + [("text", text)]}])
+
+    def _content_parts(self, parts):
         content = []
-        for img in images:
-            url = {"url": "data:image/jpeg;base64," + base64.b64encode(img).decode()}
-            if self.detail_high:
-                url["detail"] = "high"
-            content.append({"type": "image_url", "image_url": url})
-        content.append({"type": "text", "text": text})
-        body = {"model": self.model,
-                "messages": [{"role": "user", "content": content}],
+        for kind, v in parts:
+            if kind == "image":
+                url = {"url": "data:image/jpeg;base64," + base64.b64encode(v).decode()}
+                if self.detail_high:
+                    url["detail"] = "high"
+                content.append({"type": "image_url", "image_url": url})
+            else:
+                content.append({"type": "text", "text": v})
+        return content
+
+    def call_messages(self, messages):
+        ms = []
+        for m in messages:
+            if m["role"] == "assistant":
+                ms.append({"role": "assistant",
+                           "content": "".join(v for k, v in m["parts"] if k == "text")})
+            else:
+                ms.append({"role": "user", "content": self._content_parts(m["parts"])})
+        body = {"model": self.model, "messages": ms,
                 self.tokens_param: self.max_tokens}
         if self.fixed_temperature:
             body["temperature"] = 0
@@ -90,16 +105,27 @@ class Anthropic:
         self.max_tokens = bench["max_tokens"]
 
     def call(self, text, images):
-        content = [{"type": "image",
-                    "source": {"type": "base64", "media_type": "image/jpeg",
-                               "data": base64.b64encode(img).decode()}}
-                   for img in images]
-        content.append({"type": "text", "text": text})
+        return self.call_messages([{"role": "user", "parts":
+                                    [("image", i) for i in images] + [("text", text)]}])
+
+    def call_messages(self, messages):
+        ms = []
+        for m in messages:
+            if m["role"] == "assistant":
+                ms.append({"role": "assistant",
+                           "content": "".join(v for k, v in m["parts"] if k == "text")})
+            else:
+                ms.append({"role": "user", "content": [
+                    {"type": "image", "source": {"type": "base64",
+                     "media_type": "image/jpeg",
+                     "data": base64.b64encode(v).decode()}}
+                    if k == "image" else {"type": "text", "text": v}
+                    for k, v in m["parts"]]})
         # Claude 5 models reject the temperature parameter outright
         # ("`temperature` is deprecated for this model"), so like the
         # gpt-5.6 family they run at the API default.
         body = {"model": self.model, "max_tokens": self.max_tokens,
-                "messages": [{"role": "user", "content": content}]}
+                "messages": ms}
         t0 = time.time()
         r = requests.post(self.URL, json=body,
                           headers={"x-api-key": self.key,
@@ -150,6 +176,28 @@ def _extract_detections(text):
                     return obj["detections"]
             except json.JSONDecodeError:
                 pass
+    return None
+
+
+def parse_zoom(text):
+    """[x0,y0,x1,y1] if the reply is a zoom-tool request, else None."""
+    if not text or '"zoom"' not in text:
+        return None
+    decoder = json.JSONDecoder()
+    for i, ch in enumerate(text):
+        if ch == "{":
+            try:
+                obj, _ = decoder.raw_decode(text[i:])
+            except json.JSONDecodeError:
+                continue
+            if isinstance(obj, dict) and isinstance(obj.get("zoom"), list) \
+                    and len(obj["zoom"]) == 4:
+                try:
+                    box = [min(1000, max(0, round(float(v)))) for v in obj["zoom"]]
+                except (TypeError, ValueError):
+                    return None
+                return [min(box[0], box[2]), min(box[1], box[3]),
+                        max(box[0], box[2]), max(box[1], box[3])]
     return None
 
 

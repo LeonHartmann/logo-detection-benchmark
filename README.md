@@ -129,6 +129,30 @@ Brand names should be lowercase: model output is matched against them
 casefolded, so write `name` in the yaml as lowercase to keep it consistent
 with what gets reported.
 
+## Conditions: reference images and the zoom tool
+
+Model rows in `configs/models.yaml` can carry two condition flags; a
+condition row is just another model on the leaderboard (name it
+`<base>+refs` or `<base>+zoom` by convention):
+
+- `refs: true`: the model receives the configured reference images before
+  the target on every call, identically for every refs-condition model. Set
+  a top-level `reference_sheet: data/refs/moodboard.jpg` in your brands file
+  for a single labeled collage (recommended: one image showing the kit and
+  each mark with a short caption under it, real photo crops, JPEG, about
+  1200-1600px wide), and/or per-brand `refs:` lists for tight closeups of
+  easily confused marks. Rows with `refs: true` are skipped with a warning
+  until reference images exist.
+- `tools: [zoom]`: the model may reply `{"zoom": [x0,y0,x1,y1]}` up to 3
+  times per frame and receives an enlarged crop each time before giving its
+  final detections. Crops come from the same resolution rung, upscaled 2x,
+  so zooming never reveals pixels the rung does not contain and the
+  resolution axis stays honest. Raw rows record a `zooms` count; tokens and
+  latency accumulate across turns.
+
+Both conditions live in `docs/tools-research.md` with the research behind
+them and the tools worth adding next.
+
 ## The review loop
 
 Ground truth labels can have mistakes, and the review loop is how you catch

@@ -137,7 +137,7 @@ def main(argv=None):
             config.load_models(), bench, config.load_brands(), load_manifest(root),
             root, only_models=args.models.split(",") if args.models else None,
             only_rungs=[int(r) for r in args.rungs.split(",")] if args.rungs else None,
-            limit_images=args.limit)
+            limit_images=args.limit, ref_sheet=config.load_reference_sheet())
         print(stats)
     elif args.cmd == "prelabel":
         from bench.prelabel import prelabel

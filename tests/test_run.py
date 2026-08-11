@@ -259,3 +259,86 @@ def test_worker_file_error_doesnt_crash_run(tmp_path, monkeypatch):
     for row in failed_rows:
         assert row["detections"] is None
         assert "FileNotFoundError" in row["error"] or "No such file" in row["error"]
+
+
+def test_zoom_crop_returns_enlarged_jpeg():
+    import io
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new("RGB", (500, 400), "green").save(buf, "JPEG")
+    out = rn._zoom_crop(buf.getvalue(), [100, 100, 500, 600])
+    im = Image.open(io.BytesIO(out))
+    assert im.format == "JPEG"
+    # crop 100-500 of 1000 -> 200px wide of 500, x2 = 400; y 100-600 -> 200 of 400, x2 = 400
+    assert im.size == (400, 400)
+
+
+class ZoomFakeProvider:
+    provider_key = "fake"
+    def __init__(self, script):
+        self.script = list(script)
+        self.message_log = []
+    def call_messages(self, messages):
+        self.message_log.append([{"role": m["role"],
+                                  "parts": [k for k, _ in m["parts"]]}
+                                 for m in messages])
+        return CallResult(self.script.pop(0), 100, 10, 0.01)
+    def call(self, text, images):
+        return self.call_messages([{"role": "user", "parts":
+                                    [("image", i) for i in images] + [("text", text)]}])
+
+
+def test_zoom_loop_requests_crop_then_finalizes(tmp_path):
+    bench_seq = {**BENCH, "concurrency": {"fake": 1}}
+    manifest = setup_repo(tmp_path, n_images=1)
+    models = [ModelCfg("fake-zoom", "fake", "fake-1", tools=("zoom",))]
+    fp = ZoomFakeProvider(['{"zoom": [0, 0, 500, 500]}', GOOD,
+                           '{"zoom": [0, 0, 500, 500]}', GOOD])
+    stats = rn.run_benchmark(models, bench_seq, BRANDS, manifest, str(tmp_path),
+                             provider_factory=lambda m, b: fp)
+    rows = [json.loads(l) for l in
+            open(tmp_path / "results" / "raw" / "fake-zoom.jsonl")]
+    assert stats["done"] == 2 and all(r["parse_ok"] for r in rows)
+    assert all(r["zooms"] == 1 for r in rows)
+    # tokens accumulate across the two turns of each call
+    assert all(r["input_tokens"] == 200 and r["output_tokens"] == 20 for r in rows)
+    # second request of the first conversation: user, assistant, user with a
+    # new image part (the crop) plus text
+    second = fp.message_log[1]
+    assert [m["role"] for m in second] == ["user", "assistant", "user"]
+    assert second[2]["parts"] == ["image", "text"]
+
+
+def test_refs_condition_prepends_reference_images(tmp_path):
+    from PIL import Image as PILImage
+    manifest = setup_repo(tmp_path, n_images=1)
+    (tmp_path / "data" / "refs").mkdir(parents=True)
+    PILImage.new("RGB", (64, 64), "white").save(tmp_path / "data" / "refs" / "m.jpg")
+    brands = [{"name": "adidas", "description": "x", "refs": []}]
+
+    class CountingProvider:
+        provider_key = "fake"
+        def __init__(self):
+            self.image_counts = []
+        def call(self, text, images):
+            self.image_counts.append(len(images))
+            self.last_text = text
+            return CallResult(GOOD, 1, 1, 0.01)
+
+    fp = CountingProvider()
+    models = [ModelCfg("fake-refs", "fake", "fake-1", refs=True)]
+    rn.run_benchmark(models, {**BENCH, "concurrency": {"fake": 1}}, brands, manifest,
+                     str(tmp_path), only_rungs=[480], provider_factory=lambda m, b: fp,
+                     ref_sheet="data/refs/m.jpg")
+    assert fp.image_counts == [2]  # reference sheet + target
+    assert "reference sheet" in fp.last_text
+
+
+def test_refs_model_skipped_when_no_refs_configured(tmp_path, capsys):
+    manifest = setup_repo(tmp_path, n_images=1)
+    fp = FakeProvider([])
+    models = [ModelCfg("fake-refs", "fake", "fake-1", refs=True)]
+    stats = rn.run_benchmark(models, {**BENCH, "concurrency": {"fake": 1}}, BRANDS,
+                             manifest, str(tmp_path), provider_factory=lambda m, b: fp)
+    assert stats["done"] == 0 and fp.calls == 0
+    assert "skipping refs-condition models" in capsys.readouterr().out

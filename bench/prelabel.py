@@ -56,8 +56,9 @@ def prelabel(models, bench, brands, manifest, root, model_name=None, rung=None,
     mcfg = pick_model(models, model_name)
     prov = provider_factory(mcfg, bench)
 
-    refs = load_refs(brands, root)
-    prompt = build_prompt(brands, n_refs=len(refs))
+    from bench.config import load_reference_sheet
+    refs = load_refs(brands, root, sheet_path=load_reference_sheet())
+    prompt = build_prompt(brands, ref_labels=[lb for _, lb in refs])
     ref_bytes = [b for b, _ in refs]
     brand_names = {b["name"].strip().casefold() for b in brands}
 

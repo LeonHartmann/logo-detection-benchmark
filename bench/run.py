@@ -6,9 +6,29 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from bench.prompt import build_prompt, load_refs, RETRY_SUFFIX
-from bench.providers import make_provider, parse_detections
+import io
+
+from PIL import Image
+
+from bench.prompt import build_prompt, load_refs, RETRY_SUFFIX, ZOOM_LIMIT
+from bench.providers import make_provider, parse_detections, parse_zoom
 from bench.resize import derive, rungs_for
+
+
+def _zoom_crop(target_bytes, box, quality=85):
+    """An enlarged (2x) crop of the SAME rung image the model is analyzing.
+
+    Zoom never reveals pixels the rung does not contain: it crops the rung
+    image and upscales, so the resolution-robustness axis stays honest."""
+    im = Image.open(io.BytesIO(target_bytes)).convert("RGB")
+    px = [box[0] * im.width // 1000, box[1] * im.height // 1000,
+          max(box[2] * im.width // 1000, box[0] * im.width // 1000 + 8),
+          max(box[3] * im.height // 1000, box[1] * im.height // 1000 + 8)]
+    crop = im.crop(px)
+    crop = crop.resize((crop.width * 2, crop.height * 2), Image.LANCZOS)
+    buf = io.BytesIO()
+    crop.save(buf, "JPEG", quality=quality)
+    return buf.getvalue()
 
 
 def _load_done(path):
@@ -34,25 +54,79 @@ def _load_done(path):
     return done
 
 
+def _zoom_worker(prov, m, text, payload, target, row, attempt_msgs):
+    """Multi-turn zoom conversation. The model may request up to ZOOM_LIMIT
+    enlarged crops of the rung image before giving its final detections.
+    Token usage and latency accumulate across turns; row records the zoom
+    count so scoring and cost stay honest."""
+    messages = [{"role": "user",
+                 "parts": [("image", b) for b in payload] + [("text", text)]}]
+    zooms = in_tok = out_tok = 0
+    lat = 0.0
+    dets = None
+    while True:
+        res, err = attempt_msgs(prov, messages)
+        if res is None:
+            if row["detections"] is None:
+                row["error"] = err
+            break
+        in_tok += res.input_tokens
+        out_tok += res.output_tokens
+        lat += res.latency_s
+        z = parse_zoom(res.text)
+        if z is not None and zooms < ZOOM_LIMIT:
+            zooms += 1
+            crop = _zoom_crop(target, z)
+            messages.append({"role": "assistant", "parts": [("text", res.text)]})
+            messages.append({"role": "user", "parts": [
+                ("image", crop),
+                ("text", f"Zoom result of {z}, enlarged 2x from the same image. "
+                         f"{ZOOM_LIMIT - zooms} zooms remaining. Respond with the "
+                         "final detections JSON (coordinates over the FULL original "
+                         "target image), or one more zoom request.")]})
+            continue
+        dets = parse_detections(res.text)
+        if dets is None and not row["retried"]:
+            row["retried"] = True
+            messages.append({"role": "assistant", "parts": [("text", res.text)]})
+            messages.append({"role": "user", "parts": [("text", RETRY_SUFFIX.strip())]})
+            continue
+        break
+    row.update(latency_s=round(lat, 3), input_tokens=in_tok,
+               output_tokens=out_tok, zooms=zooms)
+    if dets is not None:
+        row.update(detections=dets, parse_ok=True)
+
+
 def run_benchmark(models, bench, brands, manifest, root, only_models=None,
                   only_rungs=None, limit_images=None, provider_factory=make_provider,
-                  backoff_base=2.0):
+                  backoff_base=2.0, ref_sheet=None):
     rungs = only_rungs or bench["rungs"]
     images = manifest["images"][:limit_images] if limit_images else manifest["images"]
     raw_dir = os.path.join(root, "results", "raw")
     rungs_dir = os.path.join(root, "data", "rungs")
     os.makedirs(raw_dir, exist_ok=True)
 
-    refs = load_refs(brands, root)
-    prompt = build_prompt(brands, n_refs=len(refs))
+    refs = load_refs(brands, root, sheet_path=ref_sheet)
     ref_bytes = [b for b, _ in refs]
+    ref_labels = [lb for _, lb in refs]
+    prompts = {(r, z): build_prompt(brands, ref_labels if r else (), zoom=z)
+               for r in (False, True) for z in (False, True)}
+    prompt = prompts[(False, False)]  # plain condition, used by the retry path
 
     for img in images:  # ensure ladder exists before any API call
         derive(os.path.join(root, "data", "images", img["id"]), img["id"],
                rungs_dir, rungs, bench["jpeg_quality"])
 
+    # explicitly named models run even when their row is disabled: naming a
+    # condition row on the command line is a deliberate act
     active = [m for m in models
-              if m.enabled and (not only_models or m.name in only_models)]
+              if (m.name in only_models if only_models else m.enabled)]
+    skipped_refs = [m.name for m in active if m.refs and not ref_bytes]
+    if skipped_refs:
+        print(f"skipping refs-condition models (no reference images configured): "
+              f"{', '.join(skipped_refs)}")
+        active = [m for m in active if not (m.refs and not ref_bytes)]
     sems = {}
     for m in active:
         prov = provider_factory(m, bench)
@@ -93,6 +167,18 @@ def run_benchmark(models, bench, brands, manifest, root, only_models=None,
                 delay *= 2
         return None, "unreachable"
 
+    def attempt_msgs(prov, messages):
+        delay = backoff_base
+        for i in range(bench["max_retries"]):
+            try:
+                return prov.call_messages(messages), None
+            except Exception as e:
+                if i == bench["max_retries"] - 1:
+                    return None, f"{type(e).__name__}: {e}"
+                time.sleep(delay)
+                delay *= 2
+        return None, "unreachable"
+
     def worker(item):
         m, img, rung = item
         prov = m._prov
@@ -100,28 +186,34 @@ def run_benchmark(models, bench, brands, manifest, root, only_models=None,
                "parse_ok": False, "retried": False, "latency_s": 0.0,
                "input_tokens": 0, "output_tokens": 0, "error": None,
                "ts": datetime.datetime.now(datetime.timezone.utc).isoformat()}
+        use_refs = bool(m.refs and ref_bytes)
+        zoom = "zoom" in (m.tools or ())
+        text = prompts[(use_refs, zoom)]
         try:
             with open(os.path.join(root, "data", "rungs", str(rung), img["id"]), "rb") as f:
                 target = f.read()
-            payload = ref_bytes + [target]
+            payload = (ref_bytes if use_refs else []) + [target]
             with sems[prov.provider_key]:
-                res, err = attempt(prov, prompt, payload)
-                if res is not None:
-                    dets = parse_detections(res.text)
-                    if dets is None:  # one re-ask with the bare-JSON reminder, recorded
-                        row["retried"] = True
-                        res2, err2 = attempt(prov, prompt + RETRY_SUFFIX, payload)
-                        if res2 is not None:
-                            dets = parse_detections(res2.text)
-                            res = res2
-                        err = err2
-                    row.update(latency_s=round(res.latency_s, 3),
-                               input_tokens=res.input_tokens,
-                               output_tokens=res.output_tokens)
-                    if dets is not None:
-                        row.update(detections=dets, parse_ok=True)
-                if err and row["detections"] is None:
-                    row["error"] = err
+                if zoom:
+                    _zoom_worker(prov, m, text, payload, target, row, attempt_msgs)
+                else:
+                    res, err = attempt(prov, text, payload)
+                    if res is not None:
+                        dets = parse_detections(res.text)
+                        if dets is None:  # one re-ask with the bare-JSON reminder, recorded
+                            row["retried"] = True
+                            res2, err2 = attempt(prov, text + RETRY_SUFFIX, payload)
+                            if res2 is not None:
+                                dets = parse_detections(res2.text)
+                                res = res2
+                            err = err2
+                        row.update(latency_s=round(res.latency_s, 3),
+                                   input_tokens=res.input_tokens,
+                                   output_tokens=res.output_tokens)
+                        if dets is not None:
+                            row.update(detections=dets, parse_ok=True)
+                    if err and row["detections"] is None:
+                        row["error"] = err
         except Exception as e:
             row["error"] = f"{type(e).__name__}: {e}"
         with lock:

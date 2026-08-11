@@ -28,12 +28,22 @@ class ModelCfg:
     enabled: bool = True
     price_in: float = 0.0   # USD per 1M input tokens
     price_out: float = 0.0  # USD per 1M output tokens
+    refs: bool = False      # attach the configured reference images
+    tools: tuple = ()       # e.g. ("zoom",): the model may request enlarged crops
+
+
+def load_reference_sheet(path=None):
+    """Path of the optional labeled reference sheet from the brands file."""
+    if path is None:
+        bench = load_bench()
+        path = os.path.join(ROOT, bench["brands_file"])
+    return yaml.safe_load(open(path)).get("reference_sheet")
 
 
 def load_models(path=None):
     path = path or os.path.join(ROOT, "configs", "models.yaml")
     rows = yaml.safe_load(open(path))["models"]
-    return [ModelCfg(**r) for r in rows]
+    return [ModelCfg(**{**r, "tools": tuple(r.get("tools") or ())}) for r in rows]
 
 
 def load_bench(path=None):

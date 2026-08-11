@@ -219,3 +219,42 @@ def test_parse_detections_normalizes_inverted_boxes():
     raw = '{"detections":[{"brand":"adidas","box":[500,600,400,300]}]}'
     dets = pv.parse_detections(raw)
     assert dets[0]["box"] == [400, 300, 500, 600]
+
+
+def test_parse_zoom():
+    assert pv.parse_zoom('{"zoom": [100, 200, 300, 400]}') == [100, 200, 300, 400]
+    assert pv.parse_zoom('Let me look closer. {"zoom":[300,400,100,200]}') == [100, 200, 300, 400]
+    assert pv.parse_zoom('{"detections": []}') is None
+    assert pv.parse_zoom('{"zoom": [1, 2]}') is None
+    assert pv.parse_zoom("") is None
+
+
+def test_call_messages_multiturn_shapes(monkeypatch):
+    """Assistant turns become plain-text messages; user turns carry image and
+    text parts, for both adapter families."""
+    monkeypatch.setenv("QWEN_API_KEY", "k1")
+    captured = _fake_post_capturing(monkeypatch)
+    p = pv.make_provider(ModelCfg("qwen3.8-max", "dashscope", "qwen3.8-max"), BENCH)
+    msgs = [{"role": "user", "parts": [("image", b"\xff\xd8a"), ("text", "find")]},
+            {"role": "assistant", "parts": [("text", '{"zoom":[1,2,3,4]}')]},
+            {"role": "user", "parts": [("image", b"\xff\xd8b"), ("text", "zoomed")]}]
+    p.call_messages(msgs)
+    body_msgs = captured["body"]["messages"]
+    assert [m["role"] for m in body_msgs] == ["user", "assistant", "user"]
+    assert body_msgs[1]["content"] == '{"zoom":[1,2,3,4]}'
+    assert body_msgs[2]["content"][0]["type"] == "image_url"
+    assert body_msgs[2]["content"][1] == {"type": "text", "text": "zoomed"}
+
+    captured2 = {}
+    def fake_post(url, json=None, headers=None, timeout=None):
+        captured2.update(body=json)
+        return FakeResp({"content": [{"type": "text", "text": "{}"}],
+                         "usage": {"input_tokens": 1, "output_tokens": 1}})
+    monkeypatch.setattr(pv.requests, "post", fake_post)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+    a = pv.make_provider(ModelCfg("claude-opus-5", "anthropic", "claude-opus-5"), BENCH)
+    a.call_messages(msgs)
+    body_msgs = captured2["body"]["messages"]
+    assert [m["role"] for m in body_msgs] == ["user", "assistant", "user"]
+    assert body_msgs[1]["content"] == '{"zoom":[1,2,3,4]}'
+    assert body_msgs[2]["content"][0]["type"] == "image"
