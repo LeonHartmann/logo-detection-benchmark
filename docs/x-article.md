@@ -29,7 +29,7 @@ Here is what surprised me.
 
 **1. Nobody wins everything. Not even close.**
 
-[IMAGE: results/article/ranked.png — Top models by presence F1 at 1080p]
+[IMAGE: results/article/ranked.png · Top models by presence F1 at 1080p]
 
 The best models at KNOWING a logo is present are frontier heavyweights and
 one shocking newcomer. But ask the same models WHERE the logo is and the
@@ -46,7 +46,7 @@ box-drawer in the benchmark costs less than a coffee per ten thousand images.
 
 **2. Price predicts almost nothing.**
 
-[IMAGE: results/article/pareto.png — Cost vs quality, log scale, Pareto frontier in orange]
+[IMAGE: results/article/pareto.png · Cost vs quality, log scale, Pareto frontier in orange]
 
 ByteDance's seed-2.0-mini scores 0.76 at finding brands. Claude Opus 5
 scores 0.80. The price difference: $1 versus $36 per 1,000 frames. A model
@@ -59,7 +59,7 @@ probably overpaying by an order of magnitude.**
 
 **3. Resolution is a silent killer, but not for everyone.**
 
-[IMAGE: results/article/retention.png — presence F1 from 1080p down to 144p]
+[IMAGE: results/article/retention.png · presence F1 from 1080p down to 144p]
 
 At 144p, Gemini keeps 93 percent of its 1080p performance. The box
 specialist Qwen3-VL-plus keeps 58 percent. **Specialists need pixels;
@@ -71,7 +71,7 @@ model ranking you benchmarked at full HD is lying to you.
 This is where it gets fun. I tested three method upgrades everyone would
 bet on.
 
-[IMAGE: results/article/method-presence.png — base vs refs vs zoom vs per-brand, finding brands]
+[IMAGE: results/article/method-presence.png · base vs refs vs zoom vs per-brand, finding brands]
 
 **Reference images (showing the model what each logo looks like): mostly a
 trap.** Presence detection barely moved, but box accuracy HALVED for the
@@ -83,7 +83,7 @@ modest, real gains.** It pushed Gemini Flash into a tie for first place at a
 third of Opus's price, and it doubled Opus's box accuracy. Models also used
 it rationally: twice as many zooms at 144p as at 1080p.
 
-[IMAGE: results/article/method-boxes.png — the same comparison for box accuracy]
+[IMAGE: results/article/method-boxes.png · the same comparison for box accuracy]
 
 **Per-brand calls (one focused question per brand): wrecked five models and
 crowned one.** Four of five models fell hard, one small Meta model
