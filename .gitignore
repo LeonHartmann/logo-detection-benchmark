@@ -6,5 +6,6 @@ __pycache__/
 data/images/
 data/rungs/
 data/refs/
+data/brands.json
 results/raw/
 results/gallery/
