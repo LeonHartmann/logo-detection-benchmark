@@ -1,6 +1,6 @@
 rungs: [1080, 720, 480, 240, 144]
 jpeg_quality: 85
-max_tokens: 4000  # reasoning-tier models can burn completion tokens; 2000 truncated one busy frame in smoke
+max_tokens: 16000  # generous: kimi-k3 and gpt-5.6-sol burned 4000 on reasoning and got truncated
 timeout_s: 180
 max_retries: 4
 concurrency:

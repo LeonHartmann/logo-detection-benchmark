@@ -17,7 +17,7 @@ def test_load_bench_defaults():
     assert b["rungs"] == [1080, 720, 480, 240, 144]
     assert b["jpeg_quality"] == 85
     assert b["concurrency"]["anthropic"] == 12
-    assert b["max_tokens"] == 4000
+    assert b["max_tokens"] == 16000
 
 
 def test_load_brands():
