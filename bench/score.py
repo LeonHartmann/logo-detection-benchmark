@@ -100,10 +100,21 @@ def _score_rung(rows, labels, brands, mcfg):
     }
 
 
-def score_all(raw_by_model, labels, models, rungs):
-    brands = sorted({t["brand"] for boxes in labels.values() for t in boxes}
-                    | {d["brand"] for rows in raw_by_model.values() for r in rows
-                       for d in (r["detections"] or [])})
+def score_all(raw_by_model, labels, models, rungs, brand_universe=None):
+    # The configured brand list defines the universe (fallback: brands seen in
+    # truth). Detections of brands outside it (hallucinated strings the prompt
+    # forbids) are ignored rather than scored as whole extra failed brands:
+    # the miss/FP economics of the real brands already capture model quality,
+    # and one stray string should not deflate macro F1 by a full brand.
+    if brand_universe:
+        brands = sorted(brand_universe)
+    else:
+        brands = sorted({t["brand"] for boxes in labels.values() for t in boxes})
+    universe = set(brands)
+    raw_by_model = {
+        name: [{**r, "detections": [d for d in r["detections"] if d["brand"] in universe]
+                if r["detections"] is not None else None} for r in rows]
+        for name, rows in raw_by_model.items()}
     out = {"generated": datetime.datetime.now(datetime.timezone.utc).isoformat(),
            "n_images": len(labels), "models": {}}
     mcfgs = {m.name: m for m in models}

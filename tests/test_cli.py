@@ -73,6 +73,9 @@ def test_score_warns_about_images_missing_done_labels(tmp_path, monkeypatch, cap
         "max_retries": 2, "concurrency": {"openai": 1}, "brands_file": "brands/delay.yaml"}))
     (tmp_path / "configs" / "models.yaml").write_text(yaml.dump({
         "models": [{"name": "m1", "provider": "openai", "model": "m1"}]}))
+    (tmp_path / "brands").mkdir(parents=True)
+    (tmp_path / "brands" / "delay.yaml").write_text(yaml.dump({
+        "brands": [{"name": "adidas", "description": "x", "refs": []}]}))
 
     # a.jpg has a completed label; b.jpg only appears in the raw results.
     (tmp_path / "data" / "labels" / "a.jpg.json").write_text(json.dumps(

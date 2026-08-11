@@ -42,7 +42,7 @@ def test_score_all_end_to_end():
         _mk_rows("m1", "b.jpg", 240, [], parse_ok=False),
     ]}
     models = [ModelCfg("m1", "openai", "m1", price_in=1.0, price_out=10.0)]
-    s = sc.score_all(raw, labels, models, [480, 240])
+    s = sc.score_all(raw, labels, models, [480, 240], brand_universe=["adidas", "delay"])
     r480 = s["models"]["m1"]["rungs"]["480"]
     assert r480["presence"]["adidas"]["f1"] == 1.0
     assert r480["presence"]["delay"]["fp"] == 1          # hallucinated on empty frame
@@ -105,3 +105,22 @@ def test_hit05_separate_greedy_match():
     # hit03 from det_a (IoU >= 0.3), hit05 from det_b (IoU >= 0.5)
     assert r["boxes"]["hit03"] == 1.0
     assert r["boxes"]["hit05"] == 1.0
+
+
+def test_off_list_brand_detections_are_ignored():
+    """A hallucinated brand string outside the truth universe must not create
+    a new scored brand or an FP; the truth brands' scores stay unchanged."""
+    labels = {"a.jpg": [{"brand": "adidas", "box": [0, 0, 100, 100],
+                         "size": "large", "placement": "foreground",
+                         "location": "chest"}]}
+    det_good = {"brand": "adidas", "box": [10, 10, 90, 90], "size": "large",
+                "placement": "foreground", "location": "chest", "conf": 3}
+    det_offlist = {"brand": "herforder", "box": [0, 0, 50, 50], "size": "small",
+                   "placement": "background", "location": "board", "conf": 1}
+    raw = {"m1": [_mk_rows("m1", "a.jpg", 480, [det_good, det_offlist])]}
+    s = sc.score_all(raw, labels, [ModelCfg("m1", "openai", "m1")], [480])
+    r = s["models"]["m1"]["rungs"]["480"]
+    assert "herforder" not in r["presence"]
+    assert r["presence"]["adidas"]["f1"] == 1.0
+    assert r["presence"]["_macro_f1"] == 1.0
+    assert r["boxes"]["n_det"] == 1

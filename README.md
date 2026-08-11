@@ -149,7 +149,9 @@ and correct them:
 
 - **Presence F1**: per brand, frame-level precision and recall of detected
   brands against truth brands, macro-averaged across brands into a single
-  headline F1 per model per rung.
+  headline F1 per model per rung. Detections of brands outside the configured
+  brand list are ignored entirely; they cannot match truth and do not create
+  extra scored brands.
 - **hit@0.3 / hit@0.5**: the fraction of truth boxes matched by a detection
   of the same brand at IoU >= 0.3, and separately at IoU >= 0.5, using a
   greedy best-confidence-first match.

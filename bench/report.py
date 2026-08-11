@@ -147,11 +147,16 @@ def _model_stats(scores, key="f1"):
         rungs = {int(k): v for k, v in m["rungs"].items()}
         top = rungs[max(rungs)]
         cost1k = (top["ops"]["cost_per_frame"] or 0) * 1000
+        scored = [v for b, v in top["presence"].items() if not b.startswith("_")
+                  and (v.get("tp", 0) + v.get("fn", 0) > 0 or v.get("fp", 0) > 0)]
         out.append({
             "name": name, "rungs": rungs,
             "f1": top["presence"]["_macro_f1"] or 0.0,
             "miou": top["boxes"]["mean_iou"],
             "hit03": top["boxes"]["hit03"] or 0.0,
+            "prec": sum(v["p"] for v in scored) / len(scored) if scored else 0.0,
+            "rec": sum(v["r"] for v in scored) / len(scored) if scored else 0.0,
+            "lat": top["ops"]["lat_p50"],
             "cost1k": cost1k,
             "logc": math.log10(max(cost1k, 0.01)),
             "spend": sum((r["ops"]["cost_per_frame"] or 0) * r["ops"]["n_frames"]
@@ -361,6 +366,109 @@ def _chart_brand_heatmap(stats):
             f'aria-label="Per-brand presence F1 heatmap">' + "".join(g) + "</svg>")
 
 
+def _bar_path(x, y, w, h, r=4):
+    """Horizontal bar: square at the baseline (left), 4px rounded data end."""
+    if w <= r:
+        return f'M{x},{y} h{max(w,1)} v{h} h-{max(w,1)} z'
+    return (f'M{x},{y} h{w - r} a{r},{r} 0 0 1 {r},{r} v{h - 2 * r} '
+            f'a{r},{r} 0 0 1 -{r},{r} h-{w - r} z')
+
+
+def _chart_ranked_bars(stats, key="f1", metric_label="presence F1", top_n=12):
+    """Ranked horizontal bars for the active metric, value and cost at the tip."""
+    rows = stats[:top_n]
+    RH, L, T, RPAD = 26, 170, 10, 150
+    W = 720
+    H = T + RH * len(rows) + 10
+    bw = W - L - RPAD
+    g = []
+    for gv in (0.2, 0.4, 0.6, 0.8):
+        x = L + gv / 0.9 * bw
+        g.append(f'<line x1="{x:.1f}" y1="{T}" x2="{x:.1f}" y2="{H - 8}" stroke="{GRID}"/>')
+    g.append(f'<line x1="{L}" y1="{T}" x2="{L}" y2="{H - 8}" stroke="{DIM}"/>')
+    for i, s in enumerate(rows):
+        y = T + i * RH
+        v = s[key]
+        w = v / 0.9 * bw
+        g.append(f'<g data-model="{html.escape(s["name"])}">')
+        g.append(f'<text x="{L - 8}" y="{y + 17}" font-size="12" fill="{INK2}" '
+                 f'text-anchor="end">{html.escape(s["name"])}</text>')
+        tip = f"{s['name']}: {s[key]:.3f} {metric_label}, ${s['cost1k']:.2f} per 1k frames"
+        g.append(f'<path d="{_bar_path(L, y + 4, w, 18)}" fill="{SERIES[0]}" '
+                 f'data-tt="{html.escape(tip)}"/>')
+        g.append(f'<text x="{L + w + 8:.1f}" y="{y + 17}" font-size="12" fill="{INK}" '
+                 f'style="font-variant-numeric:tabular-nums">{v:.3f}'
+                 f'<tspan fill="{MUTED}"> · ${s["cost1k"]:.2f}/1k</tspan></text>')
+        g.append('</g>')
+    return (f'<svg viewBox="0 0 {W} {H}" style="max-width:760px" role="img" '
+            f'aria-label="Ranked {metric_label} bars">' + "".join(g) + "</svg>")
+
+
+def _chart_precision_recall(stats):
+    """Scatter: macro presence precision vs recall at the top rung."""
+    W, H, L, R, T, B = 640, 360, 56, 24, 16, 44
+    pts = [s for s in stats if s["f1"] > 0.05]
+    lo = 0.3
+    sx = lambda v: L + (max(v, lo) - lo) / (1 - lo) * (W - L - R)
+    sy = lambda v: T + (1 - (max(v, lo) - lo) / (1 - lo)) * (H - T - B)
+    g = []
+    for gv in (0.4, 0.6, 0.8, 1.0):
+        g.append(f'<line x1="{L}" y1="{sy(gv):.1f}" x2="{W-R}" y2="{sy(gv):.1f}" stroke="{GRID}"/>')
+        g.append(_axis_text(L - 8, sy(gv) + 4, f"{gv:.1f}", "end"))
+        g.append(f'<line x1="{sx(gv):.1f}" y1="{T}" x2="{sx(gv):.1f}" y2="{H-B}" stroke="{GRID}"/>')
+        g.append(_axis_text(sx(gv), H - B + 16, f"{gv:.1f}"))
+    g.append(f'<line x1="{sx(lo)}" y1="{sy(lo)}" x2="{sx(1):.1f}" y2="{sy(1):.1f}" '
+             f'stroke="{DIM}" stroke-dasharray="3 3" opacity="0.5"/>')
+    g.append(_axis_text((L + W - R) / 2, H - 6, "macro recall: share of present brands reported"))
+    g.append(f'<text x="14" y="{(T + H - B) / 2:.0f}" font-size="11" fill="{MUTED}" text-anchor="middle" '
+             f'transform="rotate(-90 14 {(T + H - B) / 2:.0f})">macro precision: reports that were real</text>')
+    by_p = sorted(pts, key=lambda d: -d["prec"])
+    by_r = sorted(pts, key=lambda d: -d["rec"])
+    labeled = {by_p[0]["name"], by_p[-1]["name"], by_r[0]["name"], "qwen3.8-max"}
+    labels = []
+    for s in pts:
+        tip = (f"{s['name']}: precision {s['prec']:.3f}, recall {s['rec']:.3f}, "
+               f"F1 {s['f1']:.3f}")
+        g.append(_dot(sx(s["rec"]), sy(s["prec"]), SERIES[0], tip, model=s["name"]))
+        if s["name"] in labeled:
+            anchor_, dx = ("end", -9) if s["rec"] > 0.85 else ("start", 9)
+            labels.append({"x": sx(s["rec"]) + dx, "y": sy(s["prec"]) + 4,
+                           "text": s["name"], "anchor": anchor_, "model": s["name"]})
+    g.append(_label_svg(_place_labels(labels, T + 10, H - B - 4)))
+    return (f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Precision versus recall scatter">'
+            + "".join(g) + "</svg>")
+
+
+def _chart_latency(stats):
+    """Dot plot: median seconds per call at the top rung, log scale."""
+    import math
+    rows = sorted(stats, key=lambda s: s["lat"] or 9e9)
+    RH, L, T = 20, 170, 24
+    W, RPAD = 720, 60
+    H = T + RH * len(rows) + 12
+    x0, x1 = math.log10(1), math.log10(300)
+    sx = lambda v: L + (math.log10(max(v, 1)) - x0) / (x1 - x0) * (W - L - RPAD)
+    g = []
+    for tv in (1, 3, 10, 30, 100, 300):
+        g.append(f'<line x1="{sx(tv):.1f}" y1="{T - 6}" x2="{sx(tv):.1f}" y2="{H - 8}" stroke="{GRID}"/>')
+        g.append(_axis_text(sx(tv), T - 10, f"{tv}s"))
+    for i, s in enumerate(rows):
+        if s["lat"] is None:
+            continue
+        y = T + i * RH + RH / 2
+        g.append(f'<g data-model="{html.escape(s["name"])}">')
+        g.append(f'<text x="{L - 8}" y="{y + 4}" font-size="11" fill="{INK2}" '
+                 f'text-anchor="end">{html.escape(s["name"])}</text>')
+        g.append(f'<line x1="{L}" y1="{y:.1f}" x2="{sx(s["lat"]):.1f}" y2="{y:.1f}" '
+                 f'stroke="{GRID}"/>')
+        g.append(_dot(sx(s["lat"]), y, SERIES[0], f"{s['name']}: median {s['lat']:.1f}s per call", r=4.5))
+        g.append(f'<text x="{sx(s["lat"]) + 9:.1f}" y="{y + 4}" font-size="11" fill="{MUTED}" '
+                 f'style="font-variant-numeric:tabular-nums">{s["lat"]:.1f}s</text>')
+        g.append('</g>')
+    return (f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Median latency dot plot">'
+            + "".join(g) + "</svg>")
+
+
 def _stat_tiles(scores, stats, key="f1", metric_label="F1"):
     calls = sum(r["ops"]["n_frames"] for s in stats for r in s["rungs"].values())
     spend = sum(s["spend"] for s in stats)
@@ -404,6 +512,10 @@ def _render_html(scores, entries):
         ret_svg, ret_leg = _chart_retention(vstats, key, mlabel)
         return f"""
 <div class="tiles">{_stat_tiles(scores, vstats, key, mlabel)}</div>
+<div class="card"><h3>Top models by {mlabel}</h3>
+<p class="sub">Top rung (1080p or native). Value at the bar tip, price per
+1,000 frames beside it.</p>
+{_chart_ranked_bars(vstats, key, mlabel)}</div>
 <div class="card"><h3>Cost vs quality</h3>
 <p class="sub">{mlabel} at the top rung against price per 1,000 frames.
 Orange marks the Pareto frontier: nothing cheaper scores higher.</p>
@@ -414,6 +526,11 @@ The flatter the line, the more resolution-proof the model.</p>
 <div class="legend">{ret_leg}</div>
 {ret_svg}</div>"""
 
+    n_models = len(stats)
+    n_images = scores["n_images"]
+    n_calls = sum(r["ops"]["n_frames"] for st in stats for r in st["rungs"].values())
+    spend = sum(st["spend"] for st in stats)
+    gen_date = (scores.get("generated") or "")[:10]
     filter_bar = (
         '<div class="fbar">'
         '<span class="seg"><button class="segbtn on" data-view="view-f1">'
@@ -432,6 +549,15 @@ logos the model found AND boxed at IoU 0.3 or better.</p>
 <div id="view-f1">{_view(stats, "f1", "presence F1")}</div>
 <div id="view-hit03" style="display:none">{_view(stats_b, "hit03", "hit@0.3")}</div>
 <div class="cards">
+<div class="card"><h3>Hallucination check: precision vs recall</h3>
+<p class="sub">Macro presence precision against recall at the top rung. Below
+the diagonal means the model reports brands that are not there; right of it
+means it finds what exists. Only models with F1 above 0.05 shown.</p>
+{_chart_precision_recall(stats)}</div>
+<div class="card"><h3>Speed: median seconds per call</h3>
+<p class="sub">Median latency at the top rung, log scale. Reasoning models
+think long; specialists answer fast.</p>
+{_chart_latency(stats)}</div>
 <div class="card"><h3>Finding brands vs drawing boxes</h3>
 <p class="sub">Presence F1 against mean IoU of matched boxes. Top right is the
 goal; the bottom right models know a brand is present but cannot localize it.</p>
@@ -469,7 +595,11 @@ many truth frames contain the brand; treat low-n columns as anecdotes.</p>
         for e in entries)
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
 <title>Logo detection leaderboard</title><style>
-body{{font:14px system-ui;margin:20px;background:#111;color:#eee;max-width:1280px}}
+body{{font:14px system-ui;margin:24px auto;padding:0 24px;background:#111;color:#eee;max-width:1280px}}
+header{{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}}
+h1{{margin:0 0 6px}}
+.meta{{text-align:right;font-size:13px;color:#c3c2b7;padding-top:10px;white-space:nowrap}}
+.meta span{{font-size:12px;color:#898781}}
 table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #333;
 padding:4px 8px;text-align:right;font-variant-numeric:tabular-nums}}
 th{{cursor:pointer;background:#1b1b1b}}
@@ -504,10 +634,17 @@ tr.fhide,figure.fhide,details.fhide{{display:none}}
 figure{{display:inline-block;margin:8px;max-width:420px}}img{{max-width:100%}}
 figcaption{{font-size:12px;color:#aaa}}
 </style></head><body>
-<h1>Logo detection leaderboard</h1>
-<p class="sub">Hover any dot, line vertex, or heatmap cell for details.
-Truth boxes are green, model boxes red in the gallery. Open ui/review.html via
-server.py to record verdicts on disagreements.</p>
+<header>
+<div>
+<h1>Logo detection benchmark</h1>
+<p class="sub" style="max-width:760px">{n_models} vision models, {n_images} human-labeled
+social media frames, 5 brands, 5 resolution rungs (1080p to 144p). One
+canonical prompt, boxes scored against human truth at IoU thresholds.
+Hover any mark for details; chips filter models everywhere.</p>
+</div>
+<div class="meta">Research by Leon Hartmann<br>
+<span>generated {gen_date} · {n_calls:,} API calls · ${spend:,.2f} total</span></div>
+</header>
 {charts}
 <h2>Full results table</h2>
 <table id="lb"><thead><tr><th>model</th><th>rung</th><th>presence F1</th>
@@ -516,6 +653,8 @@ server.py to record verdicts on disagreements.</p>
 </thead><tbody>{"".join(rows)}</tbody></table>
 <h2>Per-brand F1 by model</h2>{"".join(details_sections)}
 <h2>Disagreement gallery ({len(entries)} entries)</h2>{gallery}
+<footer class="sub" style="margin:32px 0 16px">Logo detection benchmark ·
+Research by Leon Hartmann · generated {gen_date}</footer>
 <div id="tt"></div>
 <script>
 document.querySelectorAll('.segbtn').forEach(b=>b.onclick=()=>{{

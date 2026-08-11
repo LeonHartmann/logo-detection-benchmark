@@ -157,7 +157,8 @@ def main(argv=None):
         if missing:
             print(f"WARNING: {len(missing)} images have no completed truth "
                   f"labels and score as empty: {', '.join(missing)}")
-        scores = score_all(raw, labels, config.load_models(), bench["rungs"])
+        scores = score_all(raw, labels, config.load_models(), bench["rungs"],
+                           brand_universe=[b["name"] for b in config.load_brands()])
         out = os.path.join(root, "results", "scores.json")
         json.dump(scores, open(out, "w"), indent=1)
         print("wrote", out)
