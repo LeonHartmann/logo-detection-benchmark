@@ -143,7 +143,7 @@ cv.addEventListener('mouseup', () => {
 ['brand', 'size', 'placement', 'location'].forEach(f =>
   $(f).addEventListener('change', () => {
     if (selected >= 0) {
-      boxes[selected][f === 'brand' ? 'brand' : f] = $(f).value;
+      boxes[selected][f] = $(f).value;
       dirty = true; save(false); draw();
     }
   }));
@@ -157,8 +157,10 @@ document.addEventListener('keydown', e => {
   if (e.key === 'n' || e.key === 'N') $('next').click();
   if (e.key === 'p' || e.key === 'P') $('prev').click();
   if (e.key === 'Backspace') { e.preventDefault(); $('del').click(); }
-  if (e.key >= '1' && e.key <= String(Math.min(9, brands.length)))
+  if (e.key >= '1' && e.key <= String(Math.min(9, brands.length))) {
     $('brand').value = brands[+e.key - 1];
+    $('brand').dispatchEvent(new Event('change'));
+  }
 });
 window.addEventListener('resize', () => { sync(); draw(); });
 init();
