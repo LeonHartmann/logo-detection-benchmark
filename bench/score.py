@@ -64,13 +64,17 @@ def _score_rung(rows, labels, brands, mcfg):
                 pres[b]["fn"] += 1
         n_truth += len(truth)
         n_det += len(dets)
-        for di, ti, v in greedy_match(dets, truth):
+        # Greedy match at min_iou=0.3 for hit03, mean_iou, and attrs
+        matches03 = greedy_match(dets, truth)
+        for di, ti, v in matches03:
             n_matched += 1
             ious.append(v)
             hit03 += 1
-            hit05 += v >= 0.5
-            size_ok += dets[di]["size"] == truth[ti].get("size")
-            plc_ok += dets[di]["placement"] == truth[ti].get("placement")
+            size_ok += dets[di].get("size") == truth[ti].get("size")
+            plc_ok += dets[di].get("placement") == truth[ti].get("placement")
+        # Separate greedy match at min_iou=0.5 for hit05 (FINDING 2)
+        matches05 = greedy_match(dets, truth, min_iou=0.5)
+        hit05 += len(matches05)
     presence = {}
     macro = []
     for b in brands:
@@ -109,7 +113,9 @@ def score_all(raw_by_model, labels, models, rungs):
             by_rung.setdefault(r["rung"], []).append(r)
         rung_scores = {str(rg): _score_rung(by_rung[rg], labels, brands, mcfgs[name])
                        for rg in sorted(by_rung, reverse=True)}
-        top = str(max(by_rung))
+        # Use highest configured rung if present, else fallback to max available.
+        # Fallback needed because tiny images may produce native-height rungs outside the ladder. (FINDING 3)
+        top = str(max(rungs)) if max(rungs) in by_rung else str(max(by_rung))
         retention = {"presence_f1": {}, "hit03": {}}
         for rg in sorted(by_rung, reverse=True):
             if str(rg) == top:
@@ -118,7 +124,8 @@ def score_all(raw_by_model, labels, models, rungs):
                                  ("hit03", ("boxes", "hit03"))):
                 base = rung_scores[top][path[0]][path[1]]
                 cur = rung_scores[str(rg)][path[0]][path[1]]
+                # Guard both operands to handle None numerator case. (FINDING 1)
                 retention[metric][str(rg)] = (round(cur / base, 4)
-                                              if base else None)
+                                              if (base and cur is not None) else None)
         out["models"][name] = {"rungs": rung_scores, "retention": retention}
     return out

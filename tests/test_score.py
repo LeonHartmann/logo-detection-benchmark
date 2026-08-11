@@ -62,3 +62,46 @@ def test_retention_guards_zero_division():
     raw = {"m1": [_mk_rows("m1", "a.jpg", 480, []), _mk_rows("m1", "a.jpg", 240, [])]}
     s = sc.score_all(raw, labels, [ModelCfg("m1", "openai", "m1")], [480, 240])
     assert s["models"]["m1"]["retention"]["presence_f1"]["240"] is None
+
+
+def test_retention_guards_none_numerator():
+    """Regression test for FINDING 1: retention should not crash when cur is None but base is float."""
+    labels = {
+        "a.jpg": [{"brand": "adidas", "box": [0, 0, 100, 100]}],  # has truth
+        "b.jpg": [],  # empty truth
+    }
+    det_match = {"brand": "adidas", "box": [10, 10, 90, 90], "conf": 3}
+    raw = {"m1": [
+        # 480: has matched detection, hit03 = 1.0
+        _mk_rows("m1", "a.jpg", 480, [det_match]),
+        _mk_rows("m1", "b.jpg", 480, []),
+        # 240: only empty-truth images, hit03 = None
+        _mk_rows("m1", "b.jpg", 240, []),
+    ]}
+    models = [ModelCfg("m1", "openai", "m1")]
+    s = sc.score_all(raw, labels, models, [480, 240])
+    # 480: n_truth=1, hit03=1.0; 240: n_truth=0, hit03=None
+    assert s["models"]["m1"]["rungs"]["480"]["boxes"]["hit03"] == 1.0
+    assert s["models"]["m1"]["rungs"]["240"]["boxes"]["hit03"] is None
+    # retention should guard and return None (cur is None), not crash with TypeError
+    assert s["models"]["m1"]["retention"]["hit03"]["240"] is None
+
+
+def test_hit05_separate_greedy_match():
+    """Regression test for FINDING 2: hit05 should use separate min_iou=0.5 match."""
+    labels = {
+        "a.jpg": [{"brand": "adidas", "box": [0, 0, 100, 100]}],
+    }
+    # det_a: conf=3, IoU ~0.48 (fails min_iou=0.5)
+    # det_b: conf=1, IoU ~0.82 (passes min_iou=0.5)
+    # If both use same match at 0.3, high-conf det_a claims the truth.
+    # With separate match at 0.5, det_b should claim it for hit05.
+    det_a = {"brand": "adidas", "box": [0, 0, 96, 100], "conf": 3}  # IoU ≈ 0.48
+    det_b = {"brand": "adidas", "box": [5, 5, 95, 95], "conf": 1}   # IoU ≈ 0.82
+    raw = {"m1": [_mk_rows("m1", "a.jpg", 480, [det_a, det_b])]}
+    models = [ModelCfg("m1", "openai", "m1")]
+    s = sc.score_all(raw, labels, models, [480])
+    r = s["models"]["m1"]["rungs"]["480"]
+    # Both metrics should be 1.0: hit03 from det_a, hit05 from det_b
+    assert r["boxes"]["hit03"] == 1.0
+    assert r["boxes"]["hit05"] == 1.0
