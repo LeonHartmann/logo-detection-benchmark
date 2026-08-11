@@ -111,7 +111,9 @@ def build_report(root):
                                 "image": row["image"], "rung": GALLERY_RUNG, **d})
     os.makedirs(gallery_dir, exist_ok=True)
     json.dump(entries, open(os.path.join(gallery_dir, "manifest.json"), "w"), indent=1)
-    html_out = _render_html(scores, entries)
+    findings_path = os.path.join(root, "results", "findings.html")
+    findings = open(findings_path).read() if os.path.exists(findings_path) else ""
+    html_out = _render_html(scores, entries, findings)
     out = os.path.join(root, "results", "leaderboard.html")
     open(out, "w").write(html_out)
     print(f"wrote {out} and {len(entries)} gallery entries")
@@ -469,6 +471,77 @@ def _chart_latency(stats):
             + "".join(g) + "</svg>")
 
 
+def _col_path(x, y_top, w, h, r=4):
+    """Vertical column: 4px rounded data end (top), square at the baseline."""
+    if h <= r + 1:
+        return f'M{x},{y_top} h{w} v{h} h-{w} z'
+    return (f'M{x},{y_top + r} a{r},{r} 0 0 1 {r},-{r} h{w - 2 * r} '
+            f'a{r},{r} 0 0 1 {r},{r} v{h - r} h-{w} z')
+
+
+def _method_groups(scores):
+    """base model -> {condition: row name} for every <base>+<cond> row."""
+    groups = {}
+    for name in scores["models"]:
+        if "+" in name:
+            base, cond = name.split("+", 1)
+            if base in scores["models"]:
+                groups.setdefault(base, {})[cond] = name
+    return groups
+
+
+def _chart_method_bars(scores, metric, y_max=0.9):
+    """Grouped columns comparing base vs +refs vs +zoom per model."""
+    groups = _method_groups(scores)
+    if not groups:
+        return ""
+    conds = [("base", None, SERIES[0]), ("refs", "refs", SERIES[1]),
+             ("zoom", "zoom", SERIES[2])]
+    vals = {}
+    for base, variants in groups.items():
+        for label, cond, _ in conds:
+            name = base if cond is None else variants.get(cond)
+            if name:
+                v = metric(scores["models"][name])
+                if v is not None:
+                    vals[(base, label)] = v
+    bases = sorted(groups, key=lambda b: -vals.get((b, "base"), 0))
+    BW, IGAP, GGAP, L, T, B = 26, 2, 34, 44, 14, 46
+    gw = 3 * BW + 2 * IGAP
+    W = L + len(bases) * (gw + GGAP) + 10
+    H = 300
+    sy = lambda v: T + (1 - v / y_max) * (H - T - B)
+    g = []
+    for gv in (0.2, 0.4, 0.6, 0.8):
+        g.append(f'<line x1="{L}" y1="{sy(gv):.1f}" x2="{W - 10}" y2="{sy(gv):.1f}" stroke="{GRID}"/>')
+        g.append(_axis_text(L - 8, sy(gv) + 4, f"{gv:.1f}", "end"))
+    g.append(f'<line x1="{L}" y1="{sy(0):.1f}" x2="{W - 10}" y2="{sy(0):.1f}" stroke="{DIM}"/>')
+    for gi, base in enumerate(bases):
+        gx = L + gi * (gw + GGAP)
+        for ci, (label, cond, color) in enumerate(conds):
+            v = vals.get((base, label))
+            if v is None:
+                continue
+            x = gx + ci * (BW + IGAP)
+            row_name = base if cond is None else groups[base][cond]
+            h = sy(0) - sy(v)
+            g.append(f'<g data-model="{html.escape(row_name)}">')
+            g.append(f'<path d="{_col_path(x, sy(v), BW, h)}" fill="{color}" '
+                     f'data-tt="{html.escape(f"{row_name}: {v:.3f}")}"/>')
+            g.append(f'<text x="{x + BW / 2:.1f}" y="{sy(v) - 4:.1f}" font-size="9" '
+                     f'fill="{INK2}" text-anchor="middle" '
+                     f'style="font-variant-numeric:tabular-nums">{v:.2f}</text>')
+            g.append('</g>')
+        g.append(_axis_text(gx + gw / 2, H - B + 16, base))
+    legend = "".join(
+        f'<span class="chip"><i style="background:{c}"></i>{lb}</span>'
+        for lb, _, c in [("base", None, SERIES[0]), ("with refs", None, SERIES[1]),
+                         ("with zoom", None, SERIES[2])])
+    return (f'<div class="legend">{legend}</div>'
+            f'<svg viewBox="0 0 {W} {H}" style="max-width:{W}px" role="img" '
+            f'aria-label="Method comparison columns">' + "".join(g) + "</svg>")
+
+
 def _stat_tiles(scores, stats, key="f1", metric_label="F1"):
     calls = sum(r["ops"]["n_frames"] for s in stats for r in s["rungs"].values())
     spend = sum(s["spend"] for s in stats)
@@ -490,7 +563,7 @@ def _stat_tiles(scores, stats, key="f1", metric_label="F1"):
         f'<div class="ts">{html.escape(s)}</div></div>' for l, v, s in tiles)
 
 
-def _render_html(scores, entries):
+def _render_html(scores, entries, findings=""):
     rows = []
     for model, s in sorted(scores["models"].items()):
         for rung, rs in s["rungs"].items():
@@ -548,6 +621,21 @@ the brand at all. Detection + boxes ranks by hit@0.3: the share of truth
 logos the model found AND boxed at IoU 0.3 or better.</p>
 <div id="view-f1">{_view(stats, "f1", "presence F1")}</div>
 <div id="view-hit03" style="display:none">{_view(stats_b, "hit03", "hit@0.3")}</div>
+<h2>Method comparison: plain vs reference images vs zoom tool</h2>
+<div class="cards">
+<div class="card"><h3>Finding brands: presence F1 at the top rung</h3>
+<p class="sub">Same model, three ways of asking. Missing bars mean the
+condition was not run for that model.</p>
+{_chart_method_bars(scores, lambda m: m["rungs"]["1080"]["presence"]["_macro_f1"])}</div>
+<div class="card"><h3>Drawing boxes: hit@0.3 at the top rung</h3>
+<p class="sub">Share of truth boxes matched at IoU 0.3 or better. Reference
+images visibly cost the box-strong models their localization.</p>
+{_chart_method_bars(scores, lambda m: m["rungs"]["1080"]["boxes"]["hit03"], y_max=0.7)}</div>
+<div class="card"><h3>Low resolution: presence F1 at 144p</h3>
+<p class="sub">The zoom tool is allowed to enlarge crops of the same 144p
+image; gains here are attention, not extra pixels.</p>
+{_chart_method_bars(scores, lambda m: m["rungs"]["144"]["presence"]["_macro_f1"])}</div>
+</div>
 <div class="cards">
 <div class="card"><h3>Hallucination check: precision vs recall</h3>
 <p class="sub">Macro presence precision against recall at the top rung. Below
@@ -645,6 +733,7 @@ Hover any mark for details; chips filter models everywhere.</p>
 <div class="meta">Research by Leon Hartmann<br>
 <span>generated {gen_date} · {n_calls:,} API calls · ${spend:,.2f} total</span></div>
 </header>
+{findings}
 {charts}
 <h2>Full results table</h2>
 <table id="lb"><thead><tr><th>model</th><th>rung</th><th>presence F1</th>

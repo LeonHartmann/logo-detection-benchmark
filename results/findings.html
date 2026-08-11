@@ -1,0 +1,55 @@
+<div class="card" id="findings">
+<h3>Findings</h3>
+<p class="sub">Written 2026-08-11 after the full 34-row matrix (24 base models,
+5 reference-image conditions, 5 zoom-tool conditions; about 9,000 calls, $75).
+Edit results/findings.html to update this section.</p>
+
+<table style="max-width:860px;margin:0 0 16px">
+<thead><tr><th style="text-align:left">question</th><th style="text-align:left">answer</th></tr></thead>
+<tbody>
+<tr><td>Best at finding brands</td><td>claude-opus-5 and gemini-3.6-flash+zoom, both presence F1 0.799; the zoom variant costs a third of opus</td></tr>
+<tr><td>Best at drawing boxes</td><td>qwen3-vl-plus by a huge margin: hit@0.3 0.603, mean IoU 0.886, at $0.80 per 1,000 frames. The frontier generalists know a brand is there but cannot localize it (opus 0.143, gemini 0.143, sonnet 0.008)</td></tr>
+<tr><td>Best value</td><td>seed-2.0-mini: F1 0.760 at $1.01 per 1,000 frames; with the zoom tool 0.789 at $1.20, which is opus-level presence at 1/30th of the price</td></tr>
+<tr><td>Most resolution-proof</td><td>The Gemini family (93 percent F1 retention at 144p) and gpt-5.6 sol/terra (90-93 percent). The box specialist qwen3-vl-plus collapses at low res (58 percent retention): specialists need pixels</td></tr>
+<tr><td>Recommended pipeline</td><td>Cheap cascade: seed-2.0-mini(+zoom) for presence, qwen3-vl-plus for boxes; about $2 per 1,000 frames total</td></tr>
+</tbody>
+</table>
+
+<p style="max-width:860px"><strong>Reference images: dose and placement matter, not a free win.</strong>
+On the four brands with real sample sizes, attaching five per-brand reference
+collages to every call helped the small models (muse-glimmer +0.045,
+seed-2.0-mini +0.019 presence F1), did nothing for the frontier models
+(within noise), and hurt the VL specialist (qwen3-vl-plus -0.061, stripes
+recall 1.00 to 0.69). The one unambiguous effect: box quality halves for the
+box-strong models with refs in context (seed hit@0.3 0.485 to 0.257,
+qwen3-vl-plus 0.603 to 0.266, over all 242 truth boxes). Keep reference
+images away from whatever draws boxes. The apparent 11teamsports collapse
+under refs is not interpretable: that brand has exactly one truth frame, and
+the refs made models stop guessing (baseline precision was 0.17-0.25, mostly
+false positives). More 11teamsports truth frames are needed before any
+conclusion about the benchmark's weakest brand.</p>
+
+<p style="max-width:860px"><strong>Zoom tool: modest, real, and rational.</strong>
+Letting models request up to three 2x crops of the same rung image lifted
+gemini-3.6-flash by +0.036 (into a tie for first), seed-2.0-mini by +0.029,
+and doubled opus's box hit rate (0.143 to 0.274, at 3x its cost). Models
+zoom more the lower the resolution (gpt-5.6-terra: 1.1 zooms per frame at
+1080p, 2.2 at 144p); the specialist barely zooms at all. Zoom crops come
+from the same rung, upscaled, so these gains are attention gains, not
+smuggled pixels.</p>
+
+<p style="max-width:860px"><strong>Format compliance is part of capability.</strong>
+perceptron-mk1 (75 percent parse failure) and ui-tars-1.5-7b (own output
+dialect, F1 0.0) cannot be used through a JSON contract regardless of their
+vision quality. kimi-k3 and gpt-5.6-sol needed a 16k-token completion budget
+before their reasoning stopped truncating mid-answer; with it, both parse
+cleanly.</p>
+
+<p class="sub" style="max-width:860px">Caveats: OpenAI gpt-5.6 and Anthropic
+Claude 5 endpoints reject an explicit temperature, so those rows ran at API
+default while all others ran at temperature 0. 11teamsports has n=1 truth
+frames; treat its column as an anecdote. One of the 40 dataset frames has no
+completed truth label and scores as empty. Truth was pre-labeled by
+qwen3-vl-plus and human-reviewed box by box (provenance recorded per label
+file), which may slightly flatter that model's IoU scores.</p>
+</div>
