@@ -92,16 +92,16 @@ def test_hit05_separate_greedy_match():
     labels = {
         "a.jpg": [{"brand": "adidas", "box": [0, 0, 100, 100]}],
     }
-    # det_a: conf=3, IoU ~0.48 (fails min_iou=0.5)
-    # det_b: conf=1, IoU ~0.82 (passes min_iou=0.5)
-    # If both use same match at 0.3, high-conf det_a claims the truth.
-    # With separate match at 0.5, det_b should claim it for hit05.
-    det_a = {"brand": "adidas", "box": [0, 0, 96, 100], "conf": 3}  # IoU ≈ 0.48
-    det_b = {"brand": "adidas", "box": [5, 5, 95, 95], "conf": 1}   # IoU ≈ 0.82
+    # det_a: conf=3, IoU=0.48 (fails min_iou=0.5 but passes 0.3)
+    # det_b: conf=1, IoU=0.90 (passes min_iou=0.5)
+    # With single match at 0.3 (old logic), high-conf det_a claims the truth; hit05 = 0.48 < 0.5.
+    # With separate match at 0.5 (new logic), det_b claims the truth for hit05; hit05 = 1.0.
+    det_a = {"brand": "adidas", "box": [0, 0, 48, 100], "conf": 3}  # IoU = 4800/10000 = 0.48
+    det_b = {"brand": "adidas", "box": [0, 0, 90, 100], "conf": 1}  # IoU = 9000/10000 = 0.90
     raw = {"m1": [_mk_rows("m1", "a.jpg", 480, [det_a, det_b])]}
     models = [ModelCfg("m1", "openai", "m1")]
     s = sc.score_all(raw, labels, models, [480])
     r = s["models"]["m1"]["rungs"]["480"]
-    # Both metrics should be 1.0: hit03 from det_a, hit05 from det_b
+    # hit03 from det_a (IoU >= 0.3), hit05 from det_b (IoU >= 0.5)
     assert r["boxes"]["hit03"] == 1.0
     assert r["boxes"]["hit05"] == 1.0
