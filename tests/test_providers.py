@@ -213,3 +213,9 @@ def test_parse_detections_repairs_missing_box_bracket():
 
 def test_parse_detections_still_rejects_unrepairable():
     assert pv.parse_detections('{"detections":[{"brand":"a","box":12,34') is None
+
+
+def test_parse_detections_normalizes_inverted_boxes():
+    raw = '{"detections":[{"brand":"adidas","box":[500,600,400,300]}]}'
+    dets = pv.parse_detections(raw)
+    assert dets[0]["box"] == [400, 300, 500, 600]

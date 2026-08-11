@@ -103,3 +103,12 @@ def test_apply_reviews_deduplicates_boxes(tmp_path):
     assert len(lab["boxes"]) == 1                   # not duplicated
     assert lab["boxes"][0]["brand"] == "adidas"
     assert lab["boxes"][0]["box"] == [100, 100, 200, 200]
+
+
+def test_render_overlay_tolerates_inverted_boxes(tmp_path):
+    from PIL import Image
+    src = tmp_path / "x.jpg"
+    Image.new("RGB", (200, 100), "gray").save(src)
+    out = tmp_path / "overlay.jpg"
+    rp.render_overlay(str(src), [[500, 600, 400, 300]], [], str(out))
+    assert out.exists()

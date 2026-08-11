@@ -175,6 +175,9 @@ def parse_detections(text):
             box = [min(1000, max(0, round(float(v)))) for v in box]
         except (TypeError, ValueError):
             continue
+        # some models emit inverted corners; normalize to x0<=x1, y0<=y1
+        box = [min(box[0], box[2]), min(box[1], box[3]),
+               max(box[0], box[2]), max(box[1], box[3])]
         # Guard against unhashable values by checking isinstance(v, str) first
         size_val = d.get("size")
         size = size_val if isinstance(size_val, str) and size_val in SIZES else "small"

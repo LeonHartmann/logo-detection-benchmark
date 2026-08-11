@@ -34,7 +34,9 @@ def render_overlay(image_path, truth_boxes, det_boxes, out_path):
                       [(b, "#ef4444") for b in det_boxes]:
         x0, y0, x1, y1 = (box[0] * im.width // 1000, box[1] * im.height // 1000,
                           box[2] * im.width // 1000, box[3] * im.height // 1000)
-        dr.rectangle([x0, y0, x1, y1], outline=color, width=3)
+        # raw rows written before corner normalization may hold inverted boxes
+        dr.rectangle([min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1)],
+                     outline=color, width=3)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     im.save(out_path, "JPEG", quality=88)
 
