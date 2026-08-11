@@ -8,7 +8,7 @@ Edit results/findings.html to update this section.</p>
 <table style="max-width:860px;margin:0 0 16px">
 <thead><tr><th style="text-align:left">question</th><th style="text-align:left">answer</th></tr></thead>
 <tbody>
-<tr><td>Best at finding brands</td><td>claude-opus-5 and gemini-3.6-flash+zoom, both presence F1 0.799; the zoom variant costs a third of opus</td></tr>
+<tr><td>Best at finding brands</td><td>Single call: claude-opus-5 and gemini-3.6-flash+zoom, both macro F1 0.799 (the zoom variant at a third of opus's price). Overall: muse-glimmer-30b+perbrand reaches 0.835 with five focused calls per frame, the one model that per-brand calls helped</td></tr>
 <tr><td>Best at drawing boxes</td><td>qwen3-vl-plus by a huge margin: hit@0.3 0.603, mean IoU 0.886, at $0.80 per 1,000 frames. The frontier generalists know a brand is there but cannot localize it (opus 0.143, gemini 0.143, sonnet 0.008)</td></tr>
 <tr><td>Best value</td><td>seed-2.0-mini: F1 0.760 at $1.01 per 1,000 frames; with the zoom tool 0.789 at $1.20, which is opus-level presence at 1/30th of the price</td></tr>
 <tr><td>Most resolution-proof</td><td>The Gemini family (93 percent F1 retention at 144p) and gpt-5.6 sol/terra (90-93 percent). The box specialist qwen3-vl-plus collapses at low res (58 percent retention): specialists need pixels</td></tr>
@@ -39,19 +39,19 @@ zoom more the lower the resolution (gpt-5.6-terra: 1.1 zooms per frame at
 from the same rung, upscaled, so these gains are attention gains, not
 smuggled pixels.</p>
 
-<p style="max-width:860px"><strong>Per-brand calls: definitively worse, and
-diagnostic.</strong> Splitting each frame into five focused calls (one brand
-per call, each with only its own reference collage) lost to both the baseline
-and the five-collage refs on every tested model: seed-2.0-mini 0.879 to
-0.677, qwen3-vl-plus 0.944 to 0.773, gemini-3.6-flash 0.904 to 0.843 on the
-four reliable brands, at 4-5x the cost. dkh craters and delay precision falls
-in exactly the forced-match way you would predict: asked about one brand in
-isolation, models declare something anyway, and the other brands' presence in
-a multi-brand prompt turns out to be a guard rail, not noise. This also
-replicates the earlier qwen3.8-max per-brand result from the production
-pipeline work. Conclusion: the refs problem is not context volume; brands
-protect each other, and the only refs variant still worth trying is a single
-small combined sheet.</p>
+<p style="max-width:860px"><strong>Per-brand calls: model-dependent, and the
+biggest surprise of the benchmark.</strong> Splitting each frame into five
+focused calls (one brand per call, each with only its own reference collage)
+wrecked four models: seed-2.0-mini fell 0.879 to 0.677, qwen3-vl-plus 0.944
+to 0.773, gemini-3.6-flash 0.904 to 0.843, and claude-opus-5 and gpt-5.6-terra
+dropped to macro 0.68 and 0.67, all at 4-5x the cost. The failure mode is
+forced matching: asked about one brand in isolation, models declare something
+anyway, so dkh craters and delay precision falls; the other brands in a
+multi-brand prompt act as guard rails. But muse-glimmer-30b went the other
+way: 0.786 to 0.835 macro F1 (0.858 to 0.918 on the four reliable brands),
+making it the overall presence leader of the whole matrix. One small model
+genuinely benefits from focus while five others drown in it. Method effects
+are model-specific; test before you standardize.</p>
 
 <p style="max-width:860px"><strong>Format compliance is part of capability.</strong>
 perceptron-mk1 (75 percent parse failure) and ui-tars-1.5-7b (own output
