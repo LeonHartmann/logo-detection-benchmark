@@ -1,7 +1,8 @@
 <div class="card" id="findings">
 <h3>Findings</h3>
-<p class="sub">Written 2026-08-11 after the full 34-row matrix (24 base models,
-5 reference-image conditions, 5 zoom-tool conditions; about 9,000 calls, $75).
+<p class="sub">Written 2026-08-11 after the full 38-row matrix (24 base models,
+6 reference-image conditions, 5 zoom-tool conditions, 3 per-brand conditions;
+7,600 scored frame-rung results, $112 of API spend).
 Edit results/findings.html to update this section.</p>
 
 <table style="max-width:860px;margin:0 0 16px">
@@ -37,6 +38,20 @@ zoom more the lower the resolution (gpt-5.6-terra: 1.1 zooms per frame at
 1080p, 2.2 at 144p); the specialist barely zooms at all. Zoom crops come
 from the same rung, upscaled, so these gains are attention gains, not
 smuggled pixels.</p>
+
+<p style="max-width:860px"><strong>Per-brand calls: definitively worse, and
+diagnostic.</strong> Splitting each frame into five focused calls (one brand
+per call, each with only its own reference collage) lost to both the baseline
+and the five-collage refs on every tested model: seed-2.0-mini 0.879 to
+0.677, qwen3-vl-plus 0.944 to 0.773, gemini-3.6-flash 0.904 to 0.843 on the
+four reliable brands, at 4-5x the cost. dkh craters and delay precision falls
+in exactly the forced-match way you would predict: asked about one brand in
+isolation, models declare something anyway, and the other brands' presence in
+a multi-brand prompt turns out to be a guard rail, not noise. This also
+replicates the earlier qwen3.8-max per-brand result from the production
+pipeline work. Conclusion: the refs problem is not context volume; brands
+protect each other, and the only refs variant still worth trying is a single
+small combined sheet.</p>
 
 <p style="max-width:860px"><strong>Format compliance is part of capability.</strong>
 perceptron-mk1 (75 percent parse failure) and ui-tars-1.5-7b (own output
