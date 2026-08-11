@@ -96,7 +96,7 @@ def test_score_warns_about_images_missing_done_labels(tmp_path, monkeypatch, cap
 def test_parser_has_all_subcommands():
     parser = cli.build_parser()
     subs = parser._subparsers._group_actions[0].choices
-    assert set(subs) == {"ladder", "run", "score", "report", "serve", "apply-reviews"}
+    assert set(subs) == {"ladder", "manifest", "run", "score", "report", "serve", "apply-reviews"}
 
 
 def test_ladder_writes_brands_json(tmp_path, monkeypatch):
@@ -170,3 +170,55 @@ def test_ladder_writes_brands_json(tmp_path, monkeypatch):
     # Assert at least one rung file exists (in subdirectories like rungs/480/test.jpg)
     rung_files = glob.glob(str(tmp_path / "data" / "rungs" / "*" / "*.jpg"))
     assert len(rung_files) > 0
+
+
+def test_manifest_merges_kept_entries_and_drops_missing_ones(tmp_path, monkeypatch, capsys):
+    """`bench manifest` scans data/images/, merges by filename against any
+    existing manifest.json: kept files retain their stratum/source, new
+    files get stratum "unlabeled" with an empty source, and entries for
+    files no longer on disk are dropped (and printed)."""
+    (tmp_path / "data" / "images").mkdir(parents=True)
+    (tmp_path / "configs").mkdir(parents=True)
+
+    # "a.jpg" is already labeled in the existing manifest -- its native
+    # size there is deliberately wrong, to prove the command re-reads the
+    # real size from disk rather than trusting the old entry.
+    Image.new("RGB", (640, 360), color="blue").save(
+        tmp_path / "data" / "images" / "a.jpg", "JPEG")
+    # "b.png" is new -- not present in the existing manifest at all.
+    Image.new("RGB", (100, 200), color="green").save(
+        tmp_path / "data" / "images" / "b.png", "PNG")
+
+    existing_manifest = {
+        "images": [
+            {"id": "a.jpg", "native": [999, 999], "stratum": "busy",
+             "source": {"type": "custom", "note": "existing"}},
+            {"id": "missing.jpg", "native": [1, 1], "stratum": "n", "source": {}},
+        ]
+    }
+    (tmp_path / "data" / "manifest.json").write_text(json.dumps(existing_manifest))
+
+    (tmp_path / "configs" / "benchmark.yaml").write_text(yaml.dump({
+        "rungs": [480], "jpeg_quality": 85, "max_tokens": 100, "timeout_s": 5,
+        "max_retries": 2, "concurrency": {"openai": 1}, "brands_file": "brands/delay.yaml"}))
+
+    monkeypatch.setattr("bench.config.ROOT", str(tmp_path))
+
+    cli.main(["manifest"])
+
+    out = capsys.readouterr().out
+    assert "missing.jpg" in out                      # dropped entry named
+    assert "2 images (1 new, 1 kept, 1 dropped)" in out
+
+    manifest = json.loads((tmp_path / "data" / "manifest.json").read_text())
+    ids = [img["id"] for img in manifest["images"]]
+    assert ids == ["a.jpg", "b.png"]                  # sorted by id
+
+    by_id = {img["id"]: img for img in manifest["images"]}
+    assert by_id["a.jpg"]["native"] == [640, 360]     # re-read from disk, not [999, 999]
+    assert by_id["a.jpg"]["stratum"] == "busy"         # kept untouched
+    assert by_id["a.jpg"]["source"] == {"type": "custom", "note": "existing"}
+
+    assert by_id["b.png"]["native"] == [100, 200]
+    assert by_id["b.png"]["stratum"] == "unlabeled"    # new file default
+    assert by_id["b.png"]["source"] == {}

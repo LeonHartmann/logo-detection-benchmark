@@ -1,12 +1,16 @@
-"""python -m bench <ladder|run|score|report|serve|apply-reviews>"""
+"""python -m bench <ladder|run|score|report|serve|apply-reviews|manifest>"""
 import argparse
 import glob
 import json
 import os
 import sys
 
+from PIL import Image
+
 from bench import config
 from bench.resize import derive
+
+IMAGE_EXTS = (".jpg", ".jpeg", ".png")
 
 
 def load_manifest(root):
@@ -44,10 +48,55 @@ def load_raw(root):
     return raw
 
 
+def build_manifest(root):
+    """Scan data/images/ and (re)write data/manifest.json.
+
+    Merges by filename against any existing manifest: files already listed
+    keep their stratum and source untouched, new files get stratum
+    "unlabeled" with an empty source, and entries for files no longer on
+    disk are dropped (each drop printed). Native size is always re-read
+    from disk with PIL, never trusted from a prior manifest entry.
+    """
+    images_dir = os.path.join(root, "data", "images")
+    names = sorted(f for f in os.listdir(images_dir)
+                   if f.lower().endswith(IMAGE_EXTS)
+                   and os.path.isfile(os.path.join(images_dir, f)))
+
+    manifest_path = os.path.join(root, "data", "manifest.json")
+    existing = {}
+    if os.path.exists(manifest_path):
+        existing = {img["id"]: img for img in json.load(open(manifest_path))["images"]}
+
+    present = set(names)
+    for dropped_id in sorted(set(existing) - present):
+        print(f"dropped {dropped_id} (no longer in data/images/)")
+
+    n_new = n_kept = 0
+    images = []
+    for name in names:
+        with Image.open(os.path.join(images_dir, name)) as img:
+            w, h = img.width, img.height
+        if name in existing:
+            entry = dict(existing[name])
+            n_kept += 1
+        else:
+            entry = {"id": name, "stratum": "unlabeled", "source": {}}
+            n_new += 1
+        entry["id"] = name
+        entry["native"] = [w, h]
+        images.append(entry)
+
+    images.sort(key=lambda img: img["id"])
+    json.dump({"images": images}, open(manifest_path, "w"), indent=1)
+    n_dropped = len(existing) - n_kept
+    print(f"{len(images)} images ({n_new} new, {n_kept} kept, {n_dropped} dropped)")
+
+
 def build_parser():
     ap = argparse.ArgumentParser(prog="bench")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("ladder")
+    sub.add_parser("manifest")
     run_p = sub.add_parser("run")
     run_p.add_argument("--models", default=None, help="comma-separated model names")
     run_p.add_argument("--rungs", default=None, help="comma-separated rungs, e.g. 480,144")
@@ -65,7 +114,9 @@ def main(argv=None):
     root = config.ROOT
     config.load_env()
     bench = config.load_bench()
-    if args.cmd == "ladder":
+    if args.cmd == "manifest":
+        build_manifest(root)
+    elif args.cmd == "ladder":
         manifest = load_manifest(root)
         for img in manifest["images"]:
             derive(os.path.join(root, "data", "images", img["id"]), img["id"],

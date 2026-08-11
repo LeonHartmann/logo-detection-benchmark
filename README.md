@@ -20,10 +20,14 @@ scoring all work against any set of images and brands you supply.
    `configs/models.yaml` are needed).
 4. Put your images in `data/images/` (this directory is gitignored; images
    are never committed).
-5. Write `data/manifest.json`. It lists every image with its id, native
-   pixel size, a stratum label of your choosing (used only for reporting,
-   not scoring), and a free-form `source` object. Schema, with a two-image
-   example:
+5. `python -m bench manifest`: scans `data/images/` and writes
+   `data/manifest.json` with every image's id and native pixel size. Run it
+   again whenever you add or remove images: it merges by filename, so
+   existing entries keep whatever `stratum` and `source` you already set on
+   them, new files get `stratum: "unlabeled"` with an empty `source`, and
+   entries for files no longer on disk are dropped (each drop is printed).
+   Schema, with a two-image example, useful as a reference when you hand-edit
+   `stratum` and `source` afterward:
 
    ```json
    {
@@ -44,9 +48,11 @@ scoring all work against any set of images and brands you supply.
    }
    ```
 
-   `id` must match the filename under `data/images/`. `native` is
-   `[width, height]` in pixels. `stratum` is any short label you find useful
-   for grouping results later (for example busy, normal, empty, small-logo).
+   `id` matches the filename under `data/images/`. `native` is
+   `[width, height]` in pixels, filled in automatically by the command
+   above. `stratum` is any short label you find useful for grouping results
+   later (for example busy, normal, empty, small-logo); edit it by hand once
+   you know what's in each image.
 6. Edit `brands/<yours>.yaml` (copy `brands/delay.yaml` as a starting point):
    one entry per brand with `name`, a `description` used in the model
    prompt, and an optional `refs` list of reference image paths for brands
