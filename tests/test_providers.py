@@ -49,6 +49,52 @@ def test_dashscope_and_openrouter_reuse_openai_adapter(monkeypatch):
     assert d.provider_key == "dashscope" and o.provider_key == "openrouter"
 
 
+def _fake_post_capturing(monkeypatch):
+    captured = {}
+    def fake_post(url, json=None, headers=None, timeout=None):
+        captured.update(url=url, body=json, headers=headers)
+        return FakeResp({"choices": [{"message": {"content": '{"detections":[]}'}}],
+                         "usage": {"prompt_tokens": 1, "completion_tokens": 1}})
+    monkeypatch.setattr(pv.requests, "post", fake_post)
+    return captured
+
+
+def test_non_openai_body_keeps_max_tokens_and_temperature(monkeypatch):
+    """Regression guard for the exact 400s the live smoke test hit: a future
+    refactor that flips the openai/non-openai condition in OpenAICompatible
+    must fail a test. dashscope (and openrouter, which shares the same
+    branch) must keep sending the legacy `max_tokens` + `temperature: 0` --
+    NOT the openai-only `max_completion_tokens` / no-temperature shape."""
+    monkeypatch.setenv("QWEN_API_KEY", "k1")
+    captured = _fake_post_capturing(monkeypatch)
+    p = pv.make_provider(ModelCfg("qwen3.8-max", "dashscope", "qwen3.8-max"), BENCH)
+    p.call("find logos", [b"\xff\xd8fakejpeg"])
+    assert captured["body"]["temperature"] == 0
+    assert captured["body"]["max_tokens"] == 500
+    assert "max_completion_tokens" not in captured["body"]
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k2")
+    captured2 = _fake_post_capturing(monkeypatch)
+    o = pv.make_provider(ModelCfg("kimi-k3", "openrouter", "moonshotai/kimi-k3"), BENCH)
+    o.call("find logos", [b"\xff\xd8fakejpeg"])
+    assert captured2["body"]["temperature"] == 0
+    assert captured2["body"]["max_tokens"] == 500
+    assert "max_completion_tokens" not in captured2["body"]
+
+
+def test_openai_body_omits_temperature_and_max_tokens(monkeypatch):
+    """Mirror of the above for the openai branch: must send
+    `max_completion_tokens` and must NOT send `temperature` or the legacy
+    `max_tokens` key."""
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    captured = _fake_post_capturing(monkeypatch)
+    p = pv.make_provider(ModelCfg("gpt-5.6-terra", "openai", "gpt-5.6-terra"), BENCH)
+    p.call("find logos", [b"\xff\xd8fakejpeg"])
+    assert captured["body"]["max_completion_tokens"] == 500
+    assert "temperature" not in captured["body"]
+    assert "max_tokens" not in captured["body"]
+
+
 def test_anthropic_payload(monkeypatch):
     captured = {}
     def fake_post(url, json=None, headers=None, timeout=None):
