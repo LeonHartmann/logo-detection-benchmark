@@ -1,0 +1,11 @@
+rungs: [1080, 720, 480, 240, 144]
+jpeg_quality: 85
+max_tokens: 2000
+timeout_s: 180
+max_retries: 4
+concurrency:
+  dashscope: 8
+  openai: 8
+  openrouter: 8
+  anthropic: 8
+brands_file: brands/delay.yaml

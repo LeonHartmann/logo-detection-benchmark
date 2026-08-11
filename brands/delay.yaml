@@ -1,0 +1,16 @@
+brands:
+  - name: adidas
+    description: adidas wordmark, trefoil, or performance (three-bar triangle) logo on kit, caps, or boards
+    refs: []
+  - name: stripes
+    description: the three parallel adidas stripes as a kit design element on sleeves, shorts, socks, or pant legs
+    refs: []
+  - name: dkh
+    description: DKH wordmark logo (main shirt sponsor), usually centered on the chest
+    refs: []
+  - name: 11teamsports
+    description: 11teamsports wordmark logo (the "11" followed by "teamsports"), on sleeves or boards
+    refs: []
+  - name: delay
+    description: Delay Sports club crest, on chest, backdrops, scoreboard graphics, or corner logos
+    refs: []

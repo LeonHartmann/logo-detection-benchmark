@@ -1,0 +1,10 @@
+.DS_Store
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+data/images/
+data/rungs/
+data/refs/
+results/raw/
+results/gallery/
