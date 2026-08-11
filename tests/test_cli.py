@@ -96,7 +96,8 @@ def test_score_warns_about_images_missing_done_labels(tmp_path, monkeypatch, cap
 def test_parser_has_all_subcommands():
     parser = cli.build_parser()
     subs = parser._subparsers._group_actions[0].choices
-    assert set(subs) == {"ladder", "manifest", "run", "score", "report", "serve", "apply-reviews"}
+    assert set(subs) == {"ladder", "manifest", "run", "prelabel", "score", "report", "serve",
+                         "apply-reviews"}
 
 
 def test_ladder_writes_brands_json(tmp_path, monkeypatch):

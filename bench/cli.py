@@ -101,6 +101,12 @@ def build_parser():
     run_p.add_argument("--models", default=None, help="comma-separated model names")
     run_p.add_argument("--rungs", default=None, help="comma-separated rungs, e.g. 480,144")
     run_p.add_argument("--limit", type=int, default=None, help="first N images only")
+    prelabel_p = sub.add_parser("prelabel")
+    prelabel_p.add_argument("--model", default=None,
+                            help="model name (default: qwen3-vl-plus if enabled)")
+    prelabel_p.add_argument("--rung", type=int, default=None,
+                            help="rung to use (default: highest configured rung "
+                                 "applicable per image)")
     sub.add_parser("score")
     sub.add_parser("report")
     serve_p = sub.add_parser("serve")
@@ -132,6 +138,11 @@ def main(argv=None):
             root, only_models=args.models.split(",") if args.models else None,
             only_rungs=[int(r) for r in args.rungs.split(",")] if args.rungs else None,
             limit_images=args.limit)
+        print(stats)
+    elif args.cmd == "prelabel":
+        from bench.prelabel import prelabel
+        stats = prelabel(config.load_models(), bench, config.load_brands(), load_manifest(root),
+                         root, model_name=args.model, rung=args.rung)
         print(stats)
     elif args.cmd == "score":
         from bench.score import score_all

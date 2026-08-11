@@ -60,7 +60,10 @@ scoring all work against any set of images and brands you supply.
 8. `python server.py` and label ground truth at
    `http://localhost:8765/ui/label.html`: draw a box per logo instance, tag
    its brand, size, placement, and location, and save. Frames with no logos
-   are marked "no logos" and count as valid (empty) truth.
+   are marked "no logos" and count as valid (empty) truth. Optionally, run
+   `python -m bench prelabel` first (see "Pre-labeling (optional)" below) so
+   most frames start with a set of suggested boxes to review instead of an
+   empty canvas.
 9. `python -m bench run`: calls every enabled model in `configs/models.yaml`
    against every image at every rung. Resumable: it skips (image, rung)
    pairs already recorded in `results/raw/<model>.jsonl`.
@@ -69,6 +72,38 @@ scoring all work against any set of images and brands you supply.
 11. `python -m bench report`: builds `results/leaderboard.html` from the
     scores, including the disagreement gallery.
 12. Open `results/leaderboard.html` in a browser.
+
+### Pre-labeling (optional)
+
+`python -m bench prelabel [--model NAME] [--rung R]` runs one configured
+model over every manifest image and writes its detections into
+`data/labels/<id>.json` as suggestions, so step 8 becomes reviewing and
+adjusting boxes in `ui/label.html` instead of drawing every one from
+scratch. `--model` defaults to `qwen3-vl-plus` (it errors out and lists the
+available enabled models if that one isn't configured); `--rung` defaults
+to the highest rung each image supports, and can be overridden per run. It
+never touches human work: any image whose label file is already marked
+done, or already has one box a human drew or edited, is skipped; a label
+file made up entirely of unreviewed suggestions gets refreshed on the next
+run.
+
+Cost: about 40 calls (one per manifest image in the bundled dataset), under
+$1 at `qwen3-vl-plus`'s pricing in `configs/models.yaml`.
+
+In `ui/label.html`, suggested boxes render dashed amber with a "?" prefix
+on the tag. Edit any field on one to accept it, press `N` to accept every
+remaining suggestion on a frame and move on, or `Backspace` to reject a
+selected one.
+
+One caveat: whatever model you pre-label with has its box geometry carried
+into the truth set wherever you accept a suggestion instead of redrawing
+it, which can flatter that same model's IoU scores relative to the others
+being benchmarked. Review every box rather than mass-accepting. As a
+provenance marker, `bench prelabel` writes `"labeler": "prelabel:<model>"`
+into each file it touches; that value survives only until the file is next
+saved from the labeling UI (which happens on your first edit, or the next
+`N`), so treat it as a way to spot which images still carry an unreviewed
+machine pass, not as a permanent audit trail.
 
 ## Use your own brands
 
