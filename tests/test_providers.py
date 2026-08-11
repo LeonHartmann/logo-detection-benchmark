@@ -28,7 +28,11 @@ def test_openai_compat_payload_and_result(monkeypatch):
     p = pv.make_provider(ModelCfg("gpt-5.6-terra", "openai", "gpt-5.6-terra"), BENCH)
     r = p.call("find logos", [b"\xff\xd8fakejpeg"])
     assert "api.openai.com" in captured["url"]
-    assert captured["body"]["temperature"] == 0
+    # gpt-5.6-* rejects a custom temperature and `max_tokens`; the openai
+    # adapter omits temperature (falls back to the model's default of 1) and
+    # sends `max_completion_tokens` instead.
+    assert "temperature" not in captured["body"]
+    assert captured["body"]["max_completion_tokens"] == 500
     content = captured["body"]["messages"][0]["content"]
     assert content[0]["type"] == "image_url"
     assert content[0]["image_url"]["detail"] == "high"   # openai only

@@ -43,6 +43,12 @@ class OpenAICompatible:
         self.key = _key_from(envs)
         self.model = model
         self.detail_high = provider == "openai"
+        # OpenAI's current chat-completions models (gpt-5.6-*) reject `max_tokens`
+        # in favor of `max_completion_tokens`, and reject a custom `temperature`
+        # (only the default of 1 is accepted). dashscope/openrouter still expect
+        # the old `max_tokens` name and accept temperature=0 for determinism.
+        self.tokens_param = "max_completion_tokens" if provider == "openai" else "max_tokens"
+        self.fixed_temperature = provider != "openai"
         self.timeout = bench["timeout_s"]
         self.max_tokens = bench["max_tokens"]
 
@@ -56,7 +62,9 @@ class OpenAICompatible:
         content.append({"type": "text", "text": text})
         body = {"model": self.model,
                 "messages": [{"role": "user", "content": content}],
-                "temperature": 0, "max_tokens": self.max_tokens}
+                self.tokens_param: self.max_tokens}
+        if self.fixed_temperature:
+            body["temperature"] = 0
         t0 = time.time()
         r = requests.post(self.url, json=body,
                           headers={"Authorization": "Bearer " + self.key},
