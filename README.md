@@ -104,16 +104,16 @@ and correct them:
 - **Cost per frame**: actual input and output tokens used, multiplied by the
   model's `price_in`/`price_out` from `configs/models.yaml`, averaged per
   frame.
-- **Parse-fail rate**: the fraction of calls where the model's first
-  response could not be parsed as valid detection JSON (a retry is
-  attempted but only the first-attempt failure counts toward this metric).
+- **Parse-fail rate**: fraction of calls whose response could not be parsed
+  as the detection JSON even after the one automatic re-ask; raw result rows
+  also carry a `retried` flag if you want first-attempt strictness.
 
 ## Privacy
 
 Images and raw model results never leave your machine except as API calls to
-the providers you configure in `.env`. `data/images/`, `data/rungs/`, and
-`results/raw/` are all gitignored and are never committed; only the
-manifest, labels, and aggregate `results/scores.json` /
+the providers you configure in `.env`. `data/images/`, `data/rungs/`,
+`results/raw/`, and `results/gallery/` are all gitignored and are never
+committed; only the manifest, labels, and aggregate `results/scores.json` /
 `results/leaderboard.html` are meant to be committed.
 
 ## Building your own dataset
