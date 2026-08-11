@@ -95,7 +95,10 @@ class Anthropic:
                                "data": base64.b64encode(img).decode()}}
                    for img in images]
         content.append({"type": "text", "text": text})
-        body = {"model": self.model, "max_tokens": self.max_tokens, "temperature": 0,
+        # Claude 5 models reject the temperature parameter outright
+        # ("`temperature` is deprecated for this model"), so like the
+        # gpt-5.6 family they run at the API default.
+        body = {"model": self.model, "max_tokens": self.max_tokens,
                 "messages": [{"role": "user", "content": content}]}
         t0 = time.time()
         r = requests.post(self.URL, json=body,

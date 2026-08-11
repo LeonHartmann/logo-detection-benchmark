@@ -109,6 +109,10 @@ def test_anthropic_payload(monkeypatch):
     blocks = captured["body"]["messages"][0]["content"]
     assert blocks[0]["type"] == "image" and blocks[0]["source"]["type"] == "base64"
     assert r.output_tokens == 15
+    # Claude 5 models reject an explicit temperature ("deprecated for this
+    # model"); the adapter must not send one
+    assert "temperature" not in captured["body"]
+    assert captured["body"]["max_tokens"] == 500
 
 
 def test_missing_key_raises(monkeypatch):

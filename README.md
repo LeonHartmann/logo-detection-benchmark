@@ -169,9 +169,10 @@ and correct them:
   as the detection JSON even after the one automatic re-ask; raw result rows
   also carry a `retried` flag if you want first-attempt strictness.
 
-The gpt-5.6 family endpoints reject an explicit temperature, so OpenAI rows
-run at the API default temperature while every other provider runs at
-temperature 0; treat cross-provider comparisons accordingly.
+The gpt-5.6 family and the Claude 5 family both reject an explicit
+temperature, so OpenAI and Anthropic rows run at the API default temperature
+while DashScope and OpenRouter models run at temperature 0; treat
+cross-provider comparisons accordingly.
 
 ## Privacy
 
