@@ -4,7 +4,7 @@ import bench.config as cfg
 
 def test_load_models_parses_rows():
     models = cfg.load_models()
-    assert len(models) == 20
+    assert len(models) == 24
     m = {x.name: x for x in models}
     assert m["gpt-5.6-terra"].provider == "openai"
     assert m["gemini-3.1-pro"].model == "google/gemini-3.1-pro-preview"
