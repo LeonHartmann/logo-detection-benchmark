@@ -12,3 +12,11 @@ models:
   - {name: grok-4.5,        provider: openrouter, model: x-ai/grok-4.5,                      enabled: true, price_in: 2.0,  price_out: 6.0}   # source: openrouter.ai/api/v1/models
   - {name: kimi-k3,         provider: openrouter, model: moonshotai/kimi-k3,                 enabled: true, price_in: 3.0,  price_out: 15.0}
   - {name: qwen3-vl-235b,   provider: openrouter, model: qwen/qwen3-vl-235b-a22b-instruct,   enabled: true, price_in: 0.21, price_out: 1.9}
+  - {name: qwen3-vl-8b,     provider: openrouter, model: qwen/qwen3-vl-8b-instruct,            enabled: true, price_in: 0.117, price_out: 0.455}
+  - {name: qwen3-vl-32b,    provider: openrouter, model: qwen/qwen3-vl-32b-instruct,           enabled: true, price_in: 0.104, price_out: 0.416}
+  - {name: ui-tars-1.5-7b,  provider: openrouter, model: bytedance/ui-tars-1.5-7b,             enabled: true, price_in: 0.1,   price_out: 0.2}
+  - {name: seed-2.0-mini,   provider: openrouter, model: bytedance-seed/seed-2.0-mini,         enabled: true, price_in: 0.1,   price_out: 0.4}
+  - {name: perceptron-mk1,  provider: openrouter, model: perceptron/perceptron-mk1,            enabled: true, price_in: 0.15,  price_out: 1.5}
+  - {name: minimax-m3,      provider: openrouter, model: minimax/minimax-m3,                   enabled: true, price_in: 0.3,   price_out: 1.2}
+  - {name: mistral-small-3.2,provider: openrouter, model: mistralai/mistral-small-3.2-24b-instruct, enabled: true, price_in: 0.094, price_out: 0.25}
+  - {name: mistral-large,   provider: openrouter, model: mistralai/mistral-large-2512,         enabled: true, price_in: 0.5,   price_out: 1.5}
