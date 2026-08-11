@@ -88,3 +88,48 @@ def test_parse_detections_normalizes():
     assert d["box"] == [0, 201, 1000, 900]
     assert d["size"] == "small" and d["placement"] == "foreground"
     assert d["location"] == "other" and d["conf"] == 2
+
+
+def test_parse_detections_with_braces_in_prose():
+    """Test extraction from prose with braces before and after JSON."""
+    # Prose with brace before JSON
+    with_brace_before = 'I notice the shirt uses a {sponsor} pattern.\n{"detections":[{"brand":"adidas","box":[1,2,3,4]}]}'
+    dets = pv.parse_detections(with_brace_before)
+    assert len(dets) == 1 and dets[0]["brand"] == "adidas"
+
+    # Prose with brace after JSON
+    with_brace_after = '{"detections":[{"brand":"nike","box":[5,6,7,8]}]}\nNote: see also {reference}.'
+    dets = pv.parse_detections(with_brace_after)
+    assert len(dets) == 1 and dets[0]["brand"] == "nike"
+
+    # Multiple braces scattered throughout
+    messy = 'Check this {field}:\n{"detections":[{"brand":"puma","box":[10,20,30,40]}]} but also {note}.'
+    dets = pv.parse_detections(messy)
+    assert len(dets) == 1 and dets[0]["brand"] == "puma"
+
+
+def test_parse_detections_handles_unhashable_values():
+    """Test that unhashable field values (e.g., list instead of string) default correctly."""
+    raw = json.dumps({"detections": [
+        {"brand": "adidas", "box": [1, 2, 3, 4], "size": ["small"]},      # list instead of string
+        {"brand": "nike", "box": [5, 6, 7, 8], "placement": {"type": "bg"}},  # dict instead of string
+        {"brand": "puma", "box": [10, 20, 30, 40], "location": 123},       # int instead of string
+    ]})
+    dets = pv.parse_detections(raw)
+    assert len(dets) == 3
+    assert dets[0]["size"] == "small"      # unhashable value defaults
+    assert dets[1]["placement"] == "foreground"  # unhashable value defaults
+    assert dets[2]["location"] == "other"  # unhashable value defaults
+
+
+def test_adapter_non_2xx_raises_http_error(monkeypatch):
+    """Test that adapters propagate HTTPError on non-2xx responses."""
+    def fake_post_error(url, json=None, headers=None, timeout=None):
+        return FakeResp({"error": "unauthorized"}, status=401)
+
+    monkeypatch.setattr(pv.requests, "post", fake_post_error)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-bad")
+
+    p = pv.make_provider(ModelCfg("gpt-5.6-terra", "openai", "gpt-5.6-terra"), BENCH)
+    with pytest.raises(Exception):  # requests.HTTPError is the base exception
+        p.call("find logos", [b"\xff\xd8fakejpeg"])

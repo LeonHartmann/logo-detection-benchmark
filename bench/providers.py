@@ -114,16 +114,33 @@ def parse_detections(text):
     """Extract and normalize the detections list; None when unparseable."""
     if not text:
         return None
-    start, end = text.find("{"), text.rfind("}")
-    if start < 0 or end <= start:
-        return None
+
+    # Try parsing the whole text first (e.g., bare JSON with whitespace)
     try:
-        obj = json.loads(text[start:end + 1])
+        obj = json.loads(text.strip())
+        if isinstance(obj, dict) and isinstance(obj.get("detections"), list):
+            dets = obj["detections"]
+        else:
+            obj = None
     except json.JSONDecodeError:
-        return None
-    dets = obj.get("detections")
-    if not isinstance(dets, list):
-        return None
+        obj = None
+
+    # If that failed, iterate over all "{" positions to find the JSON object
+    if obj is None:
+        decoder = json.JSONDecoder()
+        for i, char in enumerate(text):
+            if char == "{":
+                try:
+                    obj, end_idx = decoder.raw_decode(text[i:])
+                    if isinstance(obj, dict) and isinstance(obj.get("detections"), list):
+                        dets = obj["detections"]
+                        break
+                    obj = None
+                except json.JSONDecodeError:
+                    obj = None
+        if obj is None:
+            return None
+
     out = []
     for d in dets:
         if not isinstance(d, dict) or not isinstance(d.get("brand"), str):
@@ -135,9 +152,13 @@ def parse_detections(text):
             box = [min(1000, max(0, round(float(v)))) for v in box]
         except (TypeError, ValueError):
             continue
-        size = d.get("size") if d.get("size") in SIZES else "small"
-        placement = d.get("placement") if d.get("placement") in PLACEMENTS else "foreground"
-        location = d.get("location") if d.get("location") in LOCATIONS else "other"
+        # Guard against unhashable values by checking isinstance(v, str) first
+        size_val = d.get("size")
+        size = size_val if isinstance(size_val, str) and size_val in SIZES else "small"
+        placement_val = d.get("placement")
+        placement = placement_val if isinstance(placement_val, str) and placement_val in PLACEMENTS else "foreground"
+        location_val = d.get("location")
+        location = location_val if isinstance(location_val, str) and location_val in LOCATIONS else "other"
         try:
             conf = min(3, max(1, int(d.get("conf", 2))))
         except (TypeError, ValueError):
