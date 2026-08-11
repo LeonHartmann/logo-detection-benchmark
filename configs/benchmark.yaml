@@ -4,8 +4,8 @@ max_tokens: 4000  # reasoning-tier models can burn completion tokens; 2000 trunc
 timeout_s: 180
 max_retries: 4
 concurrency:
-  dashscope: 8
-  openai: 8
-  openrouter: 8
-  anthropic: 8
+  dashscope: 12
+  openai: 12
+  openrouter: 16  # hosts 5 of the 12 models; the bottleneck at 8
+  anthropic: 12
 brands_file: brands/delay.yaml
