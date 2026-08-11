@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 """Build the 40-frame Delay dataset for the benchmark.
 
-Selection (stratified from the Delay repo's 140-frame bench set):
-  YT (24): 8 busy (truth >= 4 marks), 8 normal, 4 empty, 4 small-logo
-           (frames whose truth includes dkh or 11teamsports)
-  IG (16): 6 dkh/small-text statics, 2 busy, 4 normal, 4 empty
+Selection (stratified from the Delay repo's 140-frame bench set), target
+distribution small=10/busy=10/normal=12/empty=8 split across the two
+corpora via QUOTA below:
+  YT (31): busy (truth >= 4 marks), normal, empty, small-logo (frames
+           whose truth includes dkh or 11teamsports)
+  IG (9 of a nominal 16): 6 dkh/small-text statics, 2 busy, 4 normal,
+           4 empty -- the Delay repo's igimg population only actually
+           supplies busy=0/normal=2/empty=1 of that, so the yt quota
+           below absorbs the difference (see NOTE by QUOTA).
 YT frames are re-extracted at 1080p from the source videos with ffmpeg
 (only videos already present in the Delay repo are used; entries without
 a local 1080p video are skipped in favor of the next candidate).
