@@ -72,6 +72,14 @@ def run_benchmark(models, bench, brands, manifest, root, only_models=None,
                     stats["skipped"] += 1
                 else:
                     work.append((m, img, rung))
+    # `work` is built model-major (all of model A's items, then all of model
+    # B's, ...). With a single shared ThreadPoolExecutor, ex.map consumes it
+    # roughly in order, so the pool spends its early submissions entirely on
+    # model A -- capped at model A's provider concurrency -- before model B's
+    # work is even seen. Sorting by (image id, rung) interleaves models so
+    # consecutive items belong to different models, letting distinct
+    # providers' semaphores fill in parallel instead of one at a time.
+    work.sort(key=lambda t: (t[1]["id"], t[2]))
 
     def attempt(prov, text, images_payload):
         delay = backoff_base

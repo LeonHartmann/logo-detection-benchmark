@@ -21,12 +21,14 @@ def test_helpers_load(tmp_path):
     (tmp_path / "results" / "raw" / "m1.jsonl").write_text(
         json.dumps({"image": "a.jpg", "rung": 480, "model": "m1", "detections": [],
                     "parse_ok": True, "retried": False, "latency_s": 1,
-                    "input_tokens": 1, "output_tokens": 1, "error": None, "ts": "t"}) + "\n")
+                    "input_tokens": 1, "output_tokens": 1, "error": None, "ts": "t"}) + "\n"
+        + "not valid json at all, e.g. a truncated write\n"      # json.JSONDecodeError
+        + json.dumps({"image": "c.jpg", "model": "m1"}) + "\n")  # KeyError: no "rung"
     assert cli.load_manifest(str(tmp_path))["images"][0]["id"] == "a.jpg"
     labels = cli.load_labels(str(tmp_path))
     assert list(labels) == ["a.jpg"]          # not-done label excluded
     raw = cli.load_raw(str(tmp_path))
-    assert list(raw) == ["m1"] and len(raw["m1"]) == 1
+    assert list(raw) == ["m1"] and len(raw["m1"]) == 1  # garbage line skipped, not raised
 
 
 def test_load_raw_dedupes_by_image_rung_keeping_last(tmp_path):
@@ -55,6 +57,40 @@ def test_load_raw_dedupes_by_image_rung_keeping_last(tmp_path):
     assert by_key[("a.jpg", 480)]["ts"] == "t2"       # the LAST row for that key wins
     assert by_key[("a.jpg", 480)]["error"] is None
     assert by_key[("b.jpg", 240)]["ts"] == "t3"
+
+
+def test_score_warns_about_images_missing_done_labels(tmp_path, monkeypatch, capsys):
+    """An image that shows up in raw model output but has no completed
+    ("done") truth label scores as if it had zero truth boxes -- silently,
+    unless `score` warns about it. This is the truth-hole `bench score`
+    should surface, without changing what scores.json actually contains."""
+    (tmp_path / "data" / "labels").mkdir(parents=True)
+    (tmp_path / "results" / "raw").mkdir(parents=True)
+    (tmp_path / "configs").mkdir(parents=True)
+
+    (tmp_path / "configs" / "benchmark.yaml").write_text(yaml.dump({
+        "rungs": [480], "jpeg_quality": 85, "max_tokens": 100, "timeout_s": 5,
+        "max_retries": 2, "concurrency": {"openai": 1}, "brands_file": "brands/delay.yaml"}))
+    (tmp_path / "configs" / "models.yaml").write_text(yaml.dump({
+        "models": [{"name": "m1", "provider": "openai", "model": "m1"}]}))
+
+    # a.jpg has a completed label; b.jpg only appears in the raw results.
+    (tmp_path / "data" / "labels" / "a.jpg.json").write_text(json.dumps(
+        {"image": "a.jpg", "boxes": [], "done": True}))
+    row = {"model": "m1", "detections": [], "parse_ok": True, "retried": False,
+           "latency_s": 1, "input_tokens": 1, "output_tokens": 1, "error": None, "ts": "t"}
+    (tmp_path / "results" / "raw" / "m1.jsonl").write_text(
+        json.dumps({**row, "image": "a.jpg", "rung": 480}) + "\n"
+        + json.dumps({**row, "image": "b.jpg", "rung": 480}) + "\n")
+
+    monkeypatch.setattr("bench.config.ROOT", str(tmp_path))
+    cli.main(["score"])
+
+    out = capsys.readouterr().out
+    assert "WARNING" in out and "1 images" in out and "b.jpg" in out
+    assert "a.jpg" not in out.split("WARNING", 1)[1]  # only the labelless image is named
+    scores = json.loads((tmp_path / "results" / "scores.json").read_text())
+    assert scores["n_images"] == 1  # scoring itself is unchanged: still just the done label
 
 
 def test_parser_has_all_subcommands():

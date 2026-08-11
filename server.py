@@ -12,6 +12,11 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote
 
 SAFE_ID = re.compile(r"^[A-Za-z0-9._-]+$")
+# Static assets are only ever meant to be served from these subtrees; the
+# server is otherwise handed the whole repo root (directory=root below),
+# and SimpleHTTPRequestHandler would happily serve .env or anything else
+# in it if we let every GET fall through to super().do_GET().
+STATIC_PREFIXES = ("/ui/", "/data/", "/results/")
 
 
 def make_server(root, port):
@@ -47,6 +52,8 @@ def make_server(root, port):
                 if os.path.exists(p):
                     return self._json(json.load(open(p)))
                 return self._json({"image": image_id, "boxes": [], "done": False})
+            if not self.path.startswith(STATIC_PREFIXES):
+                return self._json({"error": "not found"}, 404)
             return super().do_GET()
 
         def do_POST(self):

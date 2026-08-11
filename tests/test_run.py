@@ -56,7 +56,9 @@ def test_run_writes_rows_and_resumes(tmp_path):
 
 
 def test_parse_failure_triggers_single_retry(tmp_path):
-    # concurrency 1 so the scripted replies map to work items deterministically
+    # concurrency 1, single model/image, so the scripted replies map to work
+    # items deterministically: work.sort()'s (image id, rung) key runs rung
+    # 240 before rung 480 for this single image.
     bench_seq = {**BENCH, "concurrency": {"fake": 1}}
     manifest = setup_repo(tmp_path, n_images=1)
     models = [ModelCfg("fake-model", "fake", "fake-1")]
@@ -65,9 +67,9 @@ def test_parse_failure_triggers_single_retry(tmp_path):
                      provider_factory=lambda m, b: fp)
     rows = [json.loads(l) for l in
             open(tmp_path / "results" / "raw" / "fake-model.jsonl")]
-    rows.sort(key=lambda r: r["rung"], reverse=True)
-    assert rows[0]["retried"] is True and rows[0]["parse_ok"] is True   # 480: fail then good
-    assert rows[1]["retried"] is True and rows[1]["parse_ok"] is False  # 240: fail twice
+    rows.sort(key=lambda r: r["rung"])
+    assert rows[0]["retried"] is True and rows[0]["parse_ok"] is True   # 240: fail then good
+    assert rows[1]["retried"] is True and rows[1]["parse_ok"] is False  # 480: fail twice
     assert rows[1]["detections"] is None
 
 
@@ -150,6 +152,43 @@ def test_concurrency_cap_is_enforced(tmp_path):
     # fakeB should respect its cap of 4 (typically much less due to serialization)
     assert providers["fakeB"].max_in_flight <= 4, \
         f"fakeB exceeded cap: max_in_flight={providers['fakeB'].max_in_flight}, cap=4"
+
+
+def test_work_is_interleaved_across_models_for_parallel_provider_progress(tmp_path):
+    """`work` is sorted by (image id, rung) so consecutive items belong to
+    different models. Without that, a model-major `work` list means a
+    shared ThreadPoolExecutor's FIFO queue dispatches one model's entire
+    backlog to the pool before another model's items are even pulled off
+    the queue -- serializing providers that could otherwise run in
+    parallel. With pool size == sum(caps) == 2 (cap 1 per model here), the
+    first two tasks the pool actually starts must belong to two different
+    models; with the old model-major order they'd both be model A's."""
+    manifest = setup_repo(tmp_path, n_images=4)
+    models = [ModelCfg("m-a", "fakeA", "fake-1"), ModelCfg("m-b", "fakeB", "fake-2")]
+    started = []
+    lock = threading.Lock()
+
+    class RecordingProvider:
+        def __init__(self, key):
+            self.provider_key = key
+
+        def call(self, text, images):
+            with lock:
+                started.append(self.provider_key)
+                hold = len(started) <= 2
+            if hold:  # keep the first two pool slots busy until both are recorded
+                time.sleep(0.05)
+            return CallResult(GOOD, 100, 10, 0.01)
+
+    providers = {}
+
+    def provider_factory(mcfg, bench):
+        return providers.setdefault(mcfg.provider, RecordingProvider(mcfg.provider))
+
+    bench_cfg = {**BENCH, "concurrency": {"fakeA": 1, "fakeB": 1}, "rungs": [480]}
+    rn.run_benchmark(models, bench_cfg, BRANDS, manifest, str(tmp_path),
+                     provider_factory=provider_factory, only_rungs=[480])
+    assert set(started[:2]) == {"fakeA", "fakeB"}
 
 
 def test_failed_row_is_retried_and_appended_on_rerun(tmp_path):

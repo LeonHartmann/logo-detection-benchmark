@@ -10,6 +10,12 @@ def _start(tmp_path):
     (tmp_path / "data" / "labels").mkdir(parents=True)
     (tmp_path / "data" / "manifest.json").write_text(json.dumps(
         {"images": [{"id": "a.jpg", "native": [854, 480], "stratum": "n", "source": {}}]}))
+    # Static-whitelist fixture: an /ui/ asset that should stay servable, and
+    # a root-level secret that must not be, mirroring the real repo layout
+    # where server.py's directory=root is the whole checkout.
+    (tmp_path / "ui").mkdir(parents=True)
+    (tmp_path / "ui" / "label.html").write_text("<html>label</html>")
+    (tmp_path / ".env").write_text("OPENAI_API_KEY=super-secret\n")
     httpd = srv.make_server(str(tmp_path), 0)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     return httpd, f"http://127.0.0.1:{httpd.server_address[1]}"
@@ -56,5 +62,25 @@ def test_path_traversal_rejected(tmp_path):
             assert False, "should have raised"
         except urllib.error.HTTPError as e:
             assert e.code == 400
+    finally:
+        httpd.shutdown()
+
+
+def test_static_serving_is_whitelisted(tmp_path):
+    """server.py hands SimpleHTTPRequestHandler the whole repo root as its
+    static directory -- do_GET must not let that fall through to secrets
+    like .env at the root; only /ui/, /data/, /results/ (and the /api/
+    routes, handled above) may be served."""
+    httpd, base = _start(tmp_path)
+    try:
+        try:
+            urllib.request.urlopen(base + "/.env")
+            assert False, "should have raised"
+        except urllib.error.HTTPError as e:
+            assert e.code in (403, 404)
+
+        with urllib.request.urlopen(base + "/ui/label.html") as r:
+            assert r.status == 200
+            assert r.read() == b"<html>label</html>"
     finally:
         httpd.shutdown()

@@ -171,6 +171,6 @@ def parse_detections(text):
             conf = min(3, max(1, int(d.get("conf", 2))))
         except (TypeError, ValueError):
             conf = 2
-        out.append({"brand": d["brand"], "box": box, "size": size,
+        out.append({"brand": d["brand"].strip().casefold(), "box": box, "size": size,
                     "placement": placement, "location": location, "conf": conf})
     return out

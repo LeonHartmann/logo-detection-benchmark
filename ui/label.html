@@ -40,7 +40,7 @@
   Frames with no logos: just press <kbd>N</kbd>.</div>
 <script>
 let manifest = [], idx = 0, boxes = [], selected = -1, brands = [];
-let drag = null, dirty = false;
+let drag = null, dirty = false, doneState = false;
 const img = document.getElementById('img'), cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
 const $ = id => document.getElementById(id);
@@ -62,7 +62,7 @@ async function load() {
   localStorage.setItem('label_idx', idx);
   const m = manifest[idx];
   const lab = await (await fetch('/api/labels/' + m.id)).json();
-  boxes = lab.boxes || []; selected = -1; dirty = false;
+  boxes = lab.boxes || []; selected = -1; dirty = false; doneState = !!lab.done;
   img.onload = () => { sync(); draw(); };
   img.src = '/data/images/' + m.id;
   $('pos').textContent = `${idx + 1}/${manifest.length}  ${m.id}` +
@@ -136,7 +136,7 @@ cv.addEventListener('mouseup', () => {
       placement: $('placement').value, location: $('location').value,
       box: [Math.round(a / cv.width * 1000), Math.round(b / cv.height * 1000),
             Math.round(c / cv.width * 1000), Math.round(d / cv.height * 1000)] });
-    selected = boxes.length - 1; dirty = true; save(false);
+    selected = boxes.length - 1; dirty = true; save(doneState);
   }
   draw();
 });
@@ -144,13 +144,13 @@ cv.addEventListener('mouseup', () => {
   $(f).addEventListener('change', () => {
     if (selected >= 0) {
       boxes[selected][f] = $(f).value;
-      dirty = true; save(false); draw();
+      dirty = true; save(doneState); draw();
     }
   }));
 $('del').onclick = () => {
-  if (selected >= 0) { boxes.splice(selected, 1); selected = -1; save(false); draw(); }
+  if (selected >= 0) { boxes.splice(selected, 1); selected = -1; save(doneState); draw(); }
 };
-$('next').onclick = async () => { await save(true); idx++; load(); };
+$('next').onclick = async () => { await save(true); doneState = true; idx++; load(); };
 $('prev').onclick = async () => { if (dirty) await save(false); idx--; load(); };
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'SELECT') return;

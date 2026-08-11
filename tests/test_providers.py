@@ -140,6 +140,17 @@ def test_parse_detections_normalizes():
     assert d["location"] == "other" and d["conf"] == 2
 
 
+def test_parse_detections_normalizes_brand_case_and_whitespace():
+    """Model output brand strings should collapse to the same casefold/strip
+    form the label UI's brand list already uses, so e.g. "  Adidas " from a
+    model matches the truth label "adidas" instead of scoring as a miss."""
+    raw = json.dumps({"detections": [
+        {"brand": "  Adidas ", "box": [1, 2, 3, 4]},
+    ]})
+    dets = pv.parse_detections(raw)
+    assert dets[0]["brand"] == "adidas"
+
+
 def test_parse_detections_with_braces_in_prose():
     """Test extraction from prose with braces before and after JSON."""
     # Prose with brace before JSON
