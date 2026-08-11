@@ -22,7 +22,6 @@ import random
 import re
 import shutil
 import subprocess
-import sys
 
 from PIL import Image
 
@@ -127,6 +126,14 @@ def main():
             break
     manifest = {"images": sorted(images, key=lambda x: x["id"])}
     json.dump(manifest, open(os.path.join(ROOT, "data", "manifest.json"), "w"), indent=1)
+    # data/images is fully derived and gitignored: reconcile it against the
+    # manifest we just wrote so a re-run after a lowered quota or a replaced
+    # source doesn't leave stale/orphaned images behind.
+    kept = {img["id"] for img in images}
+    for name in os.listdir(OUT_IMG):
+        if name not in kept:
+            os.remove(os.path.join(OUT_IMG, name))
+            print("removed orphan:", name)
     print(f"{len(images)} images", {c: picked[c] for c in picked})
     if len(images) < 40:
         print("WARNING: quota not filled; consider fetching more videos "
