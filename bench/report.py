@@ -132,8 +132,15 @@ INK, INK2, MUTED = "#eeeeee", "#c3c2b7", "#898781"
 GRID, SURFACE, DIM = "#2c2c2a", "#1a1a19", "#4a4a46"
 
 
-def _model_stats(scores):
-    """Per-model summary at the top rung, sorted by presence F1 desc."""
+def _rung_metric(rung_scores, key):
+    """The active metric for one rung: presence macro F1 or box hit@0.3."""
+    if key == "hit03":
+        return rung_scores["boxes"]["hit03"] or 0.0
+    return rung_scores["presence"]["_macro_f1"] or 0.0
+
+
+def _model_stats(scores, key="f1"):
+    """Per-model summary at the top rung, sorted by the active metric desc."""
     import math
     out = []
     for name, m in scores["models"].items():
@@ -144,7 +151,7 @@ def _model_stats(scores):
             "name": name, "rungs": rungs,
             "f1": top["presence"]["_macro_f1"] or 0.0,
             "miou": top["boxes"]["mean_iou"],
-            "hit03": top["boxes"]["hit03"],
+            "hit03": top["boxes"]["hit03"] or 0.0,
             "cost1k": cost1k,
             "logc": math.log10(max(cost1k, 0.01)),
             "spend": sum((r["ops"]["cost_per_frame"] or 0) * r["ops"]["n_frames"]
@@ -152,7 +159,7 @@ def _model_stats(scores):
             "brands": {b: v for b, v in top["presence"].items()
                        if not b.startswith("_")},
         })
-    out.sort(key=lambda d: -d["f1"])
+    out.sort(key=lambda d: -d[key])
     return out
 
 
@@ -200,8 +207,8 @@ def _axis_text(x, y, s, anchor="middle"):
             f'{html.escape(str(s))}</text>')
 
 
-def _chart_cost_quality(stats):
-    """Scatter: cost per 1,000 frames (log x) vs presence F1; Pareto in orange."""
+def _chart_cost_quality(stats, key="f1", metric_label="presence F1"):
+    """Scatter: cost per 1,000 frames (log x) vs the active metric; Pareto in orange."""
     import math
     W, H, L, R, T, B = 640, 360, 56, 24, 16, 44
     pts = [s for s in stats if s["cost1k"] > 0]
@@ -210,8 +217,8 @@ def _chart_cost_quality(stats):
     sy = lambda v: T + (1 - v / 0.9) * (H - T - B)
     frontier, best = set(), 0.0
     for s in sorted(pts, key=lambda d: d["cost1k"]):
-        if s["f1"] > max(best, 0.0):
-            frontier.add(s["name"]); best = s["f1"]
+        if s[key] > max(best, 0.0):
+            frontier.add(s["name"]); best = s[key]
     g = []
     for gv in (0.2, 0.4, 0.6, 0.8):
         g.append(f'<line x1="{L}" y1="{sy(gv):.1f}" x2="{W-R}" y2="{sy(gv):.1f}" stroke="{GRID}"/>')
@@ -221,20 +228,20 @@ def _chart_cost_quality(stats):
         g.append(_axis_text(sx(math.log10(tv)), H - B + 16, lab))
     g.append(_axis_text((L + W - R) / 2, H - 6, "cost per 1,000 frames (log)"))
     front_line = sorted((s for s in pts if s["name"] in frontier), key=lambda d: d["logc"])
-    g.append('<polyline points="' + " ".join(f"{sx(s['logc']):.1f},{sy(s['f1']):.1f}" for s in front_line)
+    g.append('<polyline points="' + " ".join(f"{sx(s['logc']):.1f},{sy(s[key]):.1f}" for s in front_line)
              + f'" fill="none" stroke="{SERIES[1]}" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>')
     labels = []
     for s in sorted(pts, key=lambda d: d["name"] in frontier):
-        tip = f"{s['name']}: F1 {s['f1']:.3f}, ${s['cost1k']:.2f}/1k frames"
+        tip = f"{s['name']}: {metric_label} {s[key]:.3f}, ${s['cost1k']:.2f}/1k frames"
         color = SERIES[1] if s["name"] in frontier else SERIES[0]
-        g.append(_dot(sx(s["logc"]), sy(s["f1"]), color, tip, model=s["name"]))
+        g.append(_dot(sx(s["logc"]), sy(s[key]), color, tip, model=s["name"]))
         if s["name"] in frontier or s["name"] == "qwen3.8-max":
             anchor, dx = ("end", -9) if s["logc"] > x1 - 0.7 else ("start", 9)
-            labels.append({"x": sx(s["logc"]) + dx, "y": sy(s["f1"]) + 4,
+            labels.append({"x": sx(s["logc"]) + dx, "y": sy(s[key]) + 4,
                            "text": s["name"], "anchor": anchor, "model": s["name"]})
     g.append(_label_svg(_place_labels(labels, T + 10, H - B - 4)))
-    return (f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Cost versus presence F1 scatter">'
-            + "".join(g) + "</svg>")
+    return (f'<svg viewBox="0 0 {W} {H}" style="max-width:720px" role="img" '
+            f'aria-label="Cost versus quality scatter">' + "".join(g) + "</svg>")
 
 
 def _chart_presence_boxes(stats):
@@ -268,8 +275,8 @@ def _chart_presence_boxes(stats):
             + "".join(g) + "</svg>")
 
 
-def _chart_retention(stats):
-    """Lines: presence F1 across resolution rungs; top 6 colored, rest gray."""
+def _chart_retention(stats, key="f1", metric_label="F1"):
+    """Lines: the active metric across resolution rungs; top 6 colored, rest gray."""
     W, H, L, R, T, B = 1180, 380, 56, 150, 16, 44
     rungs = sorted({rg for s in stats for rg in s["rungs"]}, reverse=True)
     if len(rungs) < 2:
@@ -285,7 +292,7 @@ def _chart_retention(stats):
         g.append(_axis_text(sx(i), H - B + 16, f"{rg}p"))
     g.append(_axis_text((L + W - R) / 2, H - 6, "resolution rung (image height)"))
     for s in reversed(stats):  # gray lines first, colored on top
-        vals = [(i, s["rungs"][rg]["presence"]["_macro_f1"] or 0)
+        vals = [(i, _rung_metric(s["rungs"][rg], key))
                 for i, rg in enumerate(rungs) if rg in s["rungs"]]
         if len(vals) < 2:
             continue
@@ -296,7 +303,8 @@ def _chart_retention(stats):
             seg = [f'<polyline points="{line}" fill="none" stroke="{c}" stroke-width="2" '
                    f'stroke-linejoin="round" stroke-linecap="round"/>']
             for i, v in vals:
-                seg.append(_dot(sx(i), sy(v), c, f"{s['name']} at {rungs[i]}p: F1 {v:.3f}", r=4))
+                seg.append(_dot(sx(i), sy(v), c,
+                                f"{s['name']} at {rungs[i]}p: {metric_label} {v:.3f}", r=4))
             if s["name"] == top6[0]:
                 seg.append(f'<text x="{W-R+8}" y="{sy(vals[-1][1]) + 4:.1f}" font-size="11" '
                            f'fill="{INK2}">{dm}</text>')
@@ -353,19 +361,20 @@ def _chart_brand_heatmap(stats):
             f'aria-label="Per-brand presence F1 heatmap">' + "".join(g) + "</svg>")
 
 
-def _stat_tiles(scores, stats):
+def _stat_tiles(scores, stats, key="f1", metric_label="F1"):
     calls = sum(r["ops"]["n_frames"] for s in stats for r in s["rungs"].values())
     spend = sum(s["spend"] for s in stats)
     best = stats[0]
-    value = min((s for s in stats if s["f1"] >= best["f1"] - 0.05),
+    value = min((s for s in stats if s[key] >= best[key] - 0.05),
                 key=lambda s: s["cost1k"], default=best)
     tiles = [
         ("models", str(len(stats)), "x 5 resolution rungs"),
         ("images", str(scores["n_images"]), "human-labeled truth"),
         ("API calls", f"{calls:,}", "all recorded and resumable"),
         ("total spend", f"${spend:,.2f}", "from real token usage"),
-        ("best F1", f'{best["f1"]:.3f}', best["name"]),
-        ("value pick", value["name"], f'F1 {value["f1"]:.3f} at ${value["cost1k"]:.2f}/1k'),
+        (f"best {metric_label}", f'{best[key]:.3f}', best["name"]),
+        ("value pick", value["name"],
+         f'{metric_label} {value[key]:.3f} at ${value["cost1k"]:.2f}/1k'),
     ]
     return "".join(
         f'<div class="tile"><div class="tl">{html.escape(l)}</div>'
@@ -388,36 +397,50 @@ def _render_html(scores, entries):
                 f"<td>{_fmt(a['size_acc'])}</td><td>{_fmt(a['placement_acc'])}</td>"
                 f"<td>{_fmt(o['cost_per_frame'])}</td><td>{_fmt(o['lat_p50'])}</td>"
                 f"<td>{_fmt(o['parse_fail_rate'])}</td></tr>")
-    stats = _model_stats(scores)
-    retention_svg, retention_legend = _chart_retention(stats)
+    stats = _model_stats(scores, "f1")
+    stats_b = _model_stats(scores, "hit03")
+
+    def _view(vstats, key, mlabel):
+        ret_svg, ret_leg = _chart_retention(vstats, key, mlabel)
+        return f"""
+<div class="tiles">{_stat_tiles(scores, vstats, key, mlabel)}</div>
+<div class="card"><h3>Cost vs quality</h3>
+<p class="sub">{mlabel} at the top rung against price per 1,000 frames.
+Orange marks the Pareto frontier: nothing cheaper scores higher.</p>
+{_chart_cost_quality(vstats, key, mlabel)}</div>
+<div class="card"><h3>Resolution robustness</h3>
+<p class="sub">{mlabel} as the same screenshots shrink from 1080p to 144p.
+The flatter the line, the more resolution-proof the model.</p>
+<div class="legend">{ret_leg}</div>
+{ret_svg}</div>"""
+
     filter_bar = (
-        '<div class="fbar"><span class="fbtn" id="fall">all</span>'
+        '<div class="fbar">'
+        '<span class="seg"><button class="segbtn on" data-view="view-f1">'
+        'Logo detection only</button><button class="segbtn" data-view="view-hit03">'
+        'Detection + boxes</button></span>'
+        '<span class="fbtn" id="fall">all</span>'
         '<span class="fbtn" id="fnone">none</span>'
         + "".join(f'<button class="fchip on" data-fmodel="{html.escape(s["name"])}">'
                   f'{html.escape(s["name"])}</button>' for s in stats)
         + "</div>")
     charts = f"""
 {filter_bar}
-<div class="tiles">{_stat_tiles(scores, stats)}</div>
+<p class="sub">Logo detection only ranks by presence F1: did the model report
+the brand at all. Detection + boxes ranks by hit@0.3: the share of truth
+logos the model found AND boxed at IoU 0.3 or better.</p>
+<div id="view-f1">{_view(stats, "f1", "presence F1")}</div>
+<div id="view-hit03" style="display:none">{_view(stats_b, "hit03", "hit@0.3")}</div>
 <div class="cards">
-<div class="card"><h3>Cost vs quality</h3>
-<p class="sub">Presence F1 at the top rung against price per 1,000 frames.
-Orange marks the Pareto frontier: nothing cheaper scores higher.</p>
-{_chart_cost_quality(stats)}</div>
 <div class="card"><h3>Finding brands vs drawing boxes</h3>
 <p class="sub">Presence F1 against mean IoU of matched boxes. Top right is the
 goal; the bottom right models know a brand is present but cannot localize it.</p>
 {_chart_presence_boxes(stats)}</div>
-</div>
-<div class="card"><h3>Resolution robustness</h3>
-<p class="sub">Presence F1 as the same screenshots shrink from 1080p to 144p.
-The flatter the line, the more resolution-proof the model.</p>
-<div class="legend">{retention_legend}</div>
-{retention_svg}</div>
 <div class="card"><h3>Per-brand presence F1 (top rung)</h3>
 <p class="sub">Darker is worse, lighter is better. Columns are ordered by how
 many truth frames contain the brand; treat low-n columns as anecdotes.</p>
-<div style="overflow-x:auto">{_chart_brand_heatmap(stats)}</div></div>"""
+<div style="overflow-x:auto">{_chart_brand_heatmap(stats)}</div></div>
+</div>"""
     details_sections = []
     for model, s in sorted(scores["models"].items()):
         detail_rows = []
@@ -473,6 +496,9 @@ background:#111;padding:8px 0;z-index:5}}
 border-radius:12px;padding:3px 10px;cursor:pointer}}
 .fchip.on{{background:#24303f;color:#eee;border-color:#3987e5}}
 .fbtn{{font-size:12px;color:#898781;cursor:pointer;text-decoration:underline;margin-right:4px}}
+.seg{{display:inline-flex;border:1px solid rgba(255,255,255,.15);border-radius:8px;overflow:hidden;margin-right:10px}}
+.segbtn{{font:12px system-ui;background:#1a1a19;color:#c3c2b7;border:none;padding:5px 12px;cursor:pointer}}
+.segbtn.on{{background:#3987e5;color:#0b0b0b;font-weight:600}}
 [data-model].fdim{{opacity:0.12;pointer-events:none}}
 tr.fhide,figure.fhide,details.fhide{{display:none}}
 figure{{display:inline-block;margin:8px;max-width:420px}}img{{max-width:100%}}
@@ -492,6 +518,15 @@ server.py to record verdicts on disagreements.</p>
 <h2>Disagreement gallery ({len(entries)} entries)</h2>{gallery}
 <div id="tt"></div>
 <script>
+document.querySelectorAll('.segbtn').forEach(b=>b.onclick=()=>{{
+  document.querySelectorAll('.segbtn').forEach(x=>x.classList.toggle('on',x===b));
+  document.getElementById('view-f1').style.display=b.dataset.view==='view-f1'?'':'none';
+  document.getElementById('view-hit03').style.display=b.dataset.view==='view-hit03'?'':'none';
+  try{{localStorage.setItem('lb_view',b.dataset.view);}}catch(e){{}}
+  applyFilter();
+}});
+try{{const v=localStorage.getItem('lb_view');
+if(v==='view-hit03')document.querySelector('.segbtn[data-view="view-hit03"]').click();}}catch(e){{}}
 const active=new Set([...document.querySelectorAll('.fchip')].map(c=>c.dataset.fmodel));
 function applyFilter(){{
   document.querySelectorAll('.fchip').forEach(c=>
