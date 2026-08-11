@@ -1,13 +1,14 @@
 models:
-  - {name: qwen3.8-max,     provider: dashscope,  model: qwen3.8-max,                        enabled: true, price_in: 0,    price_out: 0}
-  - {name: qwen3-vl-plus,   provider: dashscope,  model: qwen3-vl-plus,                      enabled: true, price_in: 0,    price_out: 0}
+  # price_in/price_out: USD per 1M tokens. Sources noted per row; see README.
+  - {name: qwen3.8-max,     provider: dashscope,  model: qwen3.8-max,                        enabled: true, price_in: 2.0,  price_out: 6.0}   # source: Alibaba Cloud Model Studio (Singapore), cross-checked on OpenRouter
+  - {name: qwen3-vl-plus,   provider: dashscope,  model: qwen3-vl-plus,                      enabled: true, price_in: 0.2,  price_out: 1.6}   # source: Alibaba Cloud Model Studio (Singapore), 0-32K token tier
   - {name: gpt-5.6-sol,     provider: openai,     model: gpt-5.6-sol,                        enabled: true, price_in: 5.0,  price_out: 30.0}
   - {name: gpt-5.6-terra,   provider: openai,     model: gpt-5.6-terra,                      enabled: true, price_in: 1.0,  price_out: 6.0}
   - {name: gpt-5.6-luna,    provider: openai,     model: gpt-5.6-luna,                       enabled: true, price_in: 0.1,  price_out: 0.6}
-  - {name: claude-opus-5,   provider: anthropic,  model: claude-opus-5,                      enabled: true, price_in: 0,    price_out: 0}
-  - {name: claude-sonnet-5, provider: anthropic,  model: claude-sonnet-5,                    enabled: true, price_in: 0,    price_out: 0}
+  - {name: claude-opus-5,   provider: anthropic,  model: claude-opus-5,                      enabled: true, price_in: 5.0,  price_out: 25.0}  # source: docs.anthropic.com/en/docs/about-claude/pricing
+  - {name: claude-sonnet-5, provider: anthropic,  model: claude-sonnet-5,                    enabled: true, price_in: 2.0,  price_out: 10.0}  # source: docs.anthropic.com/en/docs/about-claude/pricing, introductory pricing through 2026-08-31
   - {name: gemini-3.6-flash,provider: openrouter, model: google/gemini-3.6-flash,            enabled: true, price_in: 1.5,  price_out: 7.5}
   - {name: gemini-3.1-pro,  provider: openrouter, model: google/gemini-3.1-pro-preview,      enabled: true, price_in: 2.0,  price_out: 12.0}
-  - {name: grok-4.5,        provider: openrouter, model: x-ai/grok-4.5,                      enabled: true, price_in: 0,    price_out: 0}
+  - {name: grok-4.5,        provider: openrouter, model: x-ai/grok-4.5,                      enabled: true, price_in: 2.0,  price_out: 6.0}   # source: openrouter.ai/api/v1/models
   - {name: kimi-k3,         provider: openrouter, model: moonshotai/kimi-k3,                 enabled: true, price_in: 3.0,  price_out: 15.0}
   - {name: qwen3-vl-235b,   provider: openrouter, model: qwen/qwen3-vl-235b-a22b-instruct,   enabled: true, price_in: 0.21, price_out: 1.9}
