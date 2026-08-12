@@ -4,7 +4,7 @@ import bench.config as cfg
 
 def test_load_models_parses_rows():
     models = cfg.load_models()
-    assert len(models) == 42
+    assert len(models) == 45
     conditions = {x.name: x for x in models}
     assert conditions["claude-opus-5+refs"].refs is True
     assert conditions["gpt-5.6-terra+zoom"].tools == ("zoom",)
