@@ -1,0 +1,1191 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Frame comparison: Leon vs model</title><style>
+body{font:14px system-ui;margin:24px auto;padding:0 24px;max-width:1900px;
+background:#0d0d0d;color:#eee}
+h1{font-size:22px}h2{margin:40px 0 10px}
+.sub{color:#898781;font-size:12px}
+a{color:#3987e5}
+.frame{margin:22px 0;border-top:1px solid rgba(255,255,255,.08);padding-top:12px}
+.cap{font-size:13px;color:#c3c2b7;margin-bottom:8px}
+.bad{color:#ec835a}.good{color:#0ca30c}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+figure{margin:0}
+img{width:100%;display:block;border-radius:8px}
+figcaption{font-size:12px;color:#898781;padding:4px 2px}
+</style></head><body>
+<h1>Full-frame comparison: Leon's boxes (green) vs the model's (red)</h1>
+<p class="sub">1080p rung, every labeled frame, worst disagreements first.
+Counts in each caption; "unmatched" means no model box overlapped that truth
+box at IoU 0.3. Jump to: <a href="#qwen3.8-max">qwen3.8-max</a> · <a href="#qwen3-vl-plus">qwen3-vl-plus</a> · <a href="#claude-opus-5">claude-opus-5</a></p>
+<h2 id="qwen3.8-max">qwen3.8-max</h2>
+<div class="frame">
+<div class="cap"><strong>ig__2026-03-01_3843175230617463640_0.jpg</strong> ·
+Leon 32 boxes (adidas 9, delay 1, dkh 11, stripes 11) · model 23 boxes (delay 1, stripes 22) ·
+<span class="bad">31 of Leon&#x27;s logos unmatched; 22 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-03-01_3843175230617463640_0.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (32)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_ig__2026-03-01_3843175230617463640_0.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (23)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260601_pIx3iVzxeqQ_555s.jpg</strong> ·
+Leon 25 boxes (adidas 4, delay 2, dkh 1, stripes 18) · model 24 boxes (adidas 2, delay 4, stripes 18) ·
+<span class="bad">19 of Leon&#x27;s logos unmatched; 18 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260601_pIx3iVzxeqQ_555s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (25)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260601_pIx3iVzxeqQ_555s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (24)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-03-15_3853463180521522509_0.jpg</strong> ·
+Leon 22 boxes (adidas 11, delay 4, dkh 1, stripes 6) · model 31 boxes (11teamsports 2, adidas 10, delay 6, dkh 1, stripes 12) ·
+<span class="bad">7 of Leon&#x27;s logos unmatched; 16 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-03-15_3853463180521522509_0.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (22)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_ig__2026-03-15_3853463180521522509_0.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (31)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260720_0TPhpVefeAI_1710s.jpg</strong> ·
+Leon 15 boxes (adidas 8, stripes 7) · model 25 boxes (11teamsports 1, adidas 6, delay 7, stripes 11) ·
+<span class="bad">3 of Leon&#x27;s logos unmatched; 13 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260720_0TPhpVefeAI_1710s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (15)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260720_0TPhpVefeAI_1710s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (25)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260129_nt41l3Zt88o_1070s.jpg</strong> ·
+Leon 2 boxes (delay 2) · model 12 boxes (11teamsports 1, adidas 1, delay 1, dkh 4, stripes 5) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched; 11 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260129_nt41l3Zt88o_1070s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (2)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260129_nt41l3Zt88o_1070s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (12)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260601_pIx3iVzxeqQ_1010s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 7 boxes (delay 2, dkh 5) ·
+<span class="bad">3 of Leon&#x27;s logos unmatched; 7 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260601_pIx3iVzxeqQ_1010s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260601_pIx3iVzxeqQ_1010s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (7)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260511_oRmjGqufhFE_1375s.jpg</strong> ·
+Leon 5 boxes (11teamsports 1, adidas 1, delay 2, stripes 1) · model 4 boxes (11teamsports 1, adidas 1, delay 1, stripes 1) ·
+<span class="bad">5 of Leon&#x27;s logos unmatched; 4 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260511_oRmjGqufhFE_1375s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (5)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260511_oRmjGqufhFE_1375s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-03-01_3843257097324633191_5.jpg</strong> ·
+Leon 5 boxes (adidas 1, stripes 4) · model 10 boxes (adidas 1, delay 5, stripes 4) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 7 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-03-01_3843257097324633191_5.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (5)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_ig__2026-03-01_3843257097324633191_5.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (10)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260517_0gIADzgKJx8_2540s.jpg</strong> ·
+Leon 8 boxes (adidas 2, delay 2, dkh 1, stripes 3) · model 17 boxes (11teamsports 2, adidas 4, delay 5, dkh 1, stripes 5) ·
+<span class="bad">9 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260517_0gIADzgKJx8_2540s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (8)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260517_0gIADzgKJx8_2540s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (17)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260615_XpOpUZLiHyY_985s.jpg</strong> ·
+Leon 8 boxes (adidas 2, delay 3, stripes 3) · model 6 boxes (delay 2, stripes 4) ·
+<span class="bad">5 of Leon&#x27;s logos unmatched; 3 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260615_XpOpUZLiHyY_985s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (8)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260615_XpOpUZLiHyY_985s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (6)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260720_0TPhpVefeAI_2935s.jpg</strong> ·
+Leon 12 boxes (adidas 3, delay 2, dkh 1, stripes 6) · model 7 boxes (11teamsports 1, adidas 1, delay 1, dkh 1, stripes 3) ·
+<span class="bad">6 of Leon&#x27;s logos unmatched; 1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260720_0TPhpVefeAI_2935s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (12)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260720_0TPhpVefeAI_2935s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (7)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260427_FKXJ4unviJ4_540s.jpg</strong> ·
+Leon 3 boxes (adidas 1, stripes 2) · model 4 boxes (stripes 4) ·
+<span class="bad">3 of Leon&#x27;s logos unmatched; 4 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260427_FKXJ4unviJ4_540s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260427_FKXJ4unviJ4_540s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-07-06_3935326014816656977_6.jpg</strong> ·
+Leon 6 boxes (adidas 1, delay 2, dkh 1, stripes 2) · model 11 boxes (adidas 3, delay 3, dkh 1, stripes 4) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched; 6 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-07-06_3935326014816656977_6.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (6)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_ig__2026-07-06_3935326014816656977_6.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (11)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260427_FKXJ4unviJ4_2405s.jpg</strong> ·
+Leon 3 boxes (adidas 1, delay 1, stripes 1) · model 5 boxes (adidas 2, delay 1, stripes 2) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 4 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260427_FKXJ4unviJ4_2405s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260427_FKXJ4unviJ4_2405s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (5)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260607_UCXXWMDgv78_1545s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 6 boxes (11teamsports 1, delay 2, dkh 3) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched; 4 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260607_UCXXWMDgv78_1545s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260607_UCXXWMDgv78_1545s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (6)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260129_nt41l3Zt88o_2075s.jpg</strong> ·
+Leon 2 boxes (delay 2) · model 7 boxes (delay 4, stripes 3) ·
+<span class="bad">5 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260129_nt41l3Zt88o_2075s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (2)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260129_nt41l3Zt88o_2075s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (7)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-01-30_3821624126633156923_3.jpg</strong> ·
+Leon 7 boxes (adidas 2, delay 2, dkh 1, stripes 2) · model 9 boxes (adidas 1, delay 2, dkh 1, stripes 5) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched; 3 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-01-30_3821624126633156923_3.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (7)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_ig__2026-01-30_3821624126633156923_3.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (9)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260713_CzykZ3hUMwA_2865s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 5 boxes (adidas 2, delay 1, stripes 2) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched; 2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260713_CzykZ3hUMwA_2865s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260713_CzykZ3hUMwA_2865s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (5)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260615_XpOpUZLiHyY_180s.jpg</strong> ·
+Leon 3 boxes (adidas 1, dkh 1, stripes 1) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched; 2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260615_XpOpUZLiHyY_180s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260615_XpOpUZLiHyY_180s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260615_XpOpUZLiHyY_1565s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 4 boxes (delay 4) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched; 2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260615_XpOpUZLiHyY_1565s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260615_XpOpUZLiHyY_1565s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260713_CzykZ3hUMwA_455s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 7 boxes (11teamsports 1, adidas 1, delay 1, stripes 4) ·
+<span class="bad">3 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260713_CzykZ3hUMwA_455s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260713_CzykZ3hUMwA_455s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (7)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260601_pIx3iVzxeqQ_1390s.jpg</strong> ·
+Leon 5 boxes (adidas 1, delay 1, dkh 1, stripes 2) · model 8 boxes (11teamsports 1, adidas 1, delay 2, dkh 1, stripes 3) ·
+<span class="bad">3 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260601_pIx3iVzxeqQ_1390s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (5)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260601_pIx3iVzxeqQ_1390s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (8)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-05-21_3902038967499382729_3.jpg</strong> ·
+Leon 4 boxes (delay 2, stripes 2) · model 7 boxes (11teamsports 1, delay 2, dkh 1, stripes 3) ·
+<span class="bad">3 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-05-21_3902038967499382729_3.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_ig__2026-05-21_3902038967499382729_3.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (7)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-05-03_3888888588272181932_5.jpg</strong> ·
+Leon 9 boxes (adidas 1, delay 2, dkh 1, stripes 5) · model 11 boxes (adidas 1, delay 2, dkh 1, stripes 7) ·
+<span class="bad">2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-05-03_3888888588272181932_5.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (9)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_ig__2026-05-03_3888888588272181932_5.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (11)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260720_0TPhpVefeAI_1140s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 2 boxes (delay 2) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260720_0TPhpVefeAI_1140s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260720_0TPhpVefeAI_1140s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260615_XpOpUZLiHyY_1415s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 2 boxes (delay 2) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260615_XpOpUZLiHyY_1415s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260615_XpOpUZLiHyY_1415s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260511_oRmjGqufhFE_875s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 2 boxes (delay 2) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260511_oRmjGqufhFE_875s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260511_oRmjGqufhFE_875s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260713_CzykZ3hUMwA_1895s.jpg</strong> ·
+Leon 0 boxes (none) · model 1 boxes (stripes 1) ·
+<span class="bad">1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260713_CzykZ3hUMwA_1895s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (0)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260713_CzykZ3hUMwA_1895s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (1)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260427_FKXJ4unviJ4_260s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 5 boxes (adidas 2, delay 1, stripes 2) ·
+<span class="bad">1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260427_FKXJ4unviJ4_260s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260427_FKXJ4unviJ4_260s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (5)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260129_nt41l3Zt88o_760s.jpg</strong> ·
+Leon 3 boxes (adidas 1, delay 1, stripes 1) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="bad">1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260129_nt41l3Zt88o_760s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260129_nt41l3Zt88o_760s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-02-12_3831042752851271591_4.jpg</strong> ·
+Leon 5 boxes (adidas 1, delay 1, dkh 1, stripes 2) · model 6 boxes (11teamsports 1, adidas 1, delay 1, dkh 1, stripes 2) ·
+<span class="bad">1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-02-12_3831042752851271591_4.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (5)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_ig__2026-02-12_3831042752851271591_4.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (6)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260720_0TPhpVefeAI_625s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260720_0TPhpVefeAI_625s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260720_0TPhpVefeAI_625s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260713_CzykZ3hUMwA_2530s.jpg</strong> ·
+Leon 0 boxes (none) · model 0 boxes (none) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260713_CzykZ3hUMwA_2530s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (0)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260713_CzykZ3hUMwA_2530s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (0)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260601_pIx3iVzxeqQ_115s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260601_pIx3iVzxeqQ_115s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260601_pIx3iVzxeqQ_115s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260517_0gIADzgKJx8_2140s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260517_0gIADzgKJx8_2140s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260517_0gIADzgKJx8_2140s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260427_FKXJ4unviJ4_1525s.jpg</strong> ·
+Leon 3 boxes (adidas 1, delay 1, stripes 1) · model 3 boxes (adidas 1, delay 1, stripes 1) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260427_FKXJ4unviJ4_1525s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260427_FKXJ4unviJ4_1525s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (3)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260413_R-y985mlOEc_535s.jpg</strong> ·
+Leon 2 boxes (adidas 1, stripes 1) · model 2 boxes (adidas 1, stripes 1) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260413_R-y985mlOEc_535s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (2)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260413_R-y985mlOEc_535s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260129_nt41l3Zt88o_525s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260129_nt41l3Zt88o_525s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260129_nt41l3Zt88o_525s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260129_nt41l3Zt88o_485s.jpg</strong> ·
+Leon 2 boxes (adidas 1, stripes 1) · model 2 boxes (adidas 1, stripes 1) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260129_nt41l3Zt88o_485s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (2)</figcaption></figure>
+<figure><img src="frame_compare/qwen3.8-max_yt__20260129_nt41l3Zt88o_485s.jpg.jpg" loading="lazy">
+<figcaption>qwen3.8-max (2)</figcaption></figure>
+</div></div><h2 id="qwen3-vl-plus">qwen3-vl-plus</h2>
+<div class="frame">
+<div class="cap"><strong>ig__2026-03-15_3853463180521522509_0.jpg</strong> ·
+Leon 22 boxes (adidas 11, delay 4, dkh 1, stripes 6) · model 33 boxes (adidas 18, delay 1, dkh 1, stripes 13) ·
+<span class="bad">12 of Leon&#x27;s logos unmatched; 23 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-03-15_3853463180521522509_0.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (22)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_ig__2026-03-15_3853463180521522509_0.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (33)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260601_pIx3iVzxeqQ_555s.jpg</strong> ·
+Leon 25 boxes (adidas 4, delay 2, dkh 1, stripes 18) · model 9 boxes (adidas 3, delay 2, dkh 1, stripes 3) ·
+<span class="bad">20 of Leon&#x27;s logos unmatched; 4 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260601_pIx3iVzxeqQ_555s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (25)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260601_pIx3iVzxeqQ_555s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (9)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260720_0TPhpVefeAI_1710s.jpg</strong> ·
+Leon 15 boxes (adidas 8, stripes 7) · model 11 boxes (adidas 6, stripes 5) ·
+<span class="bad">10 of Leon&#x27;s logos unmatched; 6 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260720_0TPhpVefeAI_1710s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (15)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260720_0TPhpVefeAI_1710s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (11)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-03-01_3843257097324633191_5.jpg</strong> ·
+Leon 5 boxes (adidas 1, stripes 4) · model 6 boxes (adidas 2, dkh 2, stripes 2) ·
+<span class="bad">4 of Leon&#x27;s logos unmatched; 5 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-03-01_3843257097324633191_5.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (5)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_ig__2026-03-01_3843257097324633191_5.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (6)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260720_0TPhpVefeAI_2935s.jpg</strong> ·
+Leon 12 boxes (adidas 3, delay 2, dkh 1, stripes 6) · model 5 boxes (adidas 1, delay 1, dkh 1, stripes 2) ·
+<span class="bad">7 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260720_0TPhpVefeAI_2935s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (12)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260720_0TPhpVefeAI_2935s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (5)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260615_XpOpUZLiHyY_985s.jpg</strong> ·
+Leon 8 boxes (adidas 2, delay 3, stripes 3) · model 8 boxes (adidas 2, delay 1, dkh 1, stripes 4) ·
+<span class="bad">3 of Leon&#x27;s logos unmatched; 3 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260615_XpOpUZLiHyY_985s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (8)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260615_XpOpUZLiHyY_985s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (8)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-05-21_3902038967499382729_3.jpg</strong> ·
+Leon 4 boxes (delay 2, stripes 2) · model 3 boxes (adidas 1, stripes 2) ·
+<span class="bad">3 of Leon&#x27;s logos unmatched; 2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-05-21_3902038967499382729_3.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_ig__2026-05-21_3902038967499382729_3.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (3)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-01-30_3821624126633156923_3.jpg</strong> ·
+Leon 7 boxes (adidas 2, delay 2, dkh 1, stripes 2) · model 6 boxes (adidas 3, dkh 1, stripes 2) ·
+<span class="bad">3 of Leon&#x27;s logos unmatched; 2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-01-30_3821624126633156923_3.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (7)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_ig__2026-01-30_3821624126633156923_3.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (6)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260601_pIx3iVzxeqQ_1010s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 1 boxes (delay 1) ·
+<span class="bad">3 of Leon&#x27;s logos unmatched; 1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260601_pIx3iVzxeqQ_1010s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260601_pIx3iVzxeqQ_1010s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (1)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260427_FKXJ4unviJ4_540s.jpg</strong> ·
+Leon 3 boxes (adidas 1, stripes 2) · model 3 boxes (adidas 1, stripes 2) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260427_FKXJ4unviJ4_540s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260427_FKXJ4unviJ4_540s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (3)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260511_oRmjGqufhFE_1375s.jpg</strong> ·
+Leon 5 boxes (11teamsports 1, adidas 1, delay 2, stripes 1) · model 2 boxes (adidas 1, stripes 1) ·
+<span class="bad">3 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260511_oRmjGqufhFE_1375s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (5)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260511_oRmjGqufhFE_1375s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-05-03_3888888588272181932_5.jpg</strong> ·
+Leon 9 boxes (adidas 1, delay 2, dkh 1, stripes 5) · model 6 boxes (adidas 1, delay 1, dkh 1, stripes 3) ·
+<span class="bad">3 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-05-03_3888888588272181932_5.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (9)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_ig__2026-05-03_3888888588272181932_5.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (6)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260720_0TPhpVefeAI_1140s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 2 boxes (delay 2) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260720_0TPhpVefeAI_1140s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260720_0TPhpVefeAI_1140s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260615_XpOpUZLiHyY_1565s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 2 boxes (delay 2) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260615_XpOpUZLiHyY_1565s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260615_XpOpUZLiHyY_1565s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260615_XpOpUZLiHyY_1415s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 2 boxes (delay 2) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260615_XpOpUZLiHyY_1415s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260615_XpOpUZLiHyY_1415s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260607_UCXXWMDgv78_1545s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 2 boxes (delay 2) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260607_UCXXWMDgv78_1545s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260607_UCXXWMDgv78_1545s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-02-12_3831042752851271591_4.jpg</strong> ·
+Leon 5 boxes (adidas 1, delay 1, dkh 1, stripes 2) · model 4 boxes (adidas 1, delay 1, dkh 1, stripes 1) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-02-12_3831042752851271591_4.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (5)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_ig__2026-02-12_3831042752851271591_4.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-07-06_3935326014816656977_6.jpg</strong> ·
+Leon 6 boxes (adidas 1, delay 2, dkh 1, stripes 2) · model 7 boxes (adidas 1, delay 1, dkh 1, stripes 4) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched; 2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-07-06_3935326014816656977_6.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (6)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_ig__2026-07-06_3935326014816656977_6.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (7)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260517_0gIADzgKJx8_2540s.jpg</strong> ·
+Leon 8 boxes (adidas 2, delay 2, dkh 1, stripes 3) · model 6 boxes (adidas 2, delay 1, dkh 1, stripes 2) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260517_0gIADzgKJx8_2540s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (8)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260517_0gIADzgKJx8_2540s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (6)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260713_CzykZ3hUMwA_2865s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched; 1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260713_CzykZ3hUMwA_2865s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260713_CzykZ3hUMwA_2865s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260129_nt41l3Zt88o_1070s.jpg</strong> ·
+Leon 2 boxes (delay 2) · model 2 boxes (delay 2) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched; 1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260129_nt41l3Zt88o_1070s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (2)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260129_nt41l3Zt88o_1070s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-03-01_3843175230617463640_0.jpg</strong> ·
+Leon 32 boxes (adidas 9, delay 1, dkh 11, stripes 11) · model 34 boxes (adidas 11, delay 1, dkh 11, stripes 11) ·
+<span class="bad">2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-03-01_3843175230617463640_0.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (32)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_ig__2026-03-01_3843175230617463640_0.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (34)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260720_0TPhpVefeAI_625s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 3 boxes (adidas 1, delay 1, stripes 1) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260720_0TPhpVefeAI_625s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260720_0TPhpVefeAI_625s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (3)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260601_pIx3iVzxeqQ_1390s.jpg</strong> ·
+Leon 5 boxes (adidas 1, delay 1, dkh 1, stripes 2) · model 4 boxes (adidas 1, delay 1, dkh 1, stripes 1) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260601_pIx3iVzxeqQ_1390s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (5)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260601_pIx3iVzxeqQ_1390s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260517_0gIADzgKJx8_2140s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 3 boxes (adidas 1, delay 1, stripes 1) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260517_0gIADzgKJx8_2140s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260517_0gIADzgKJx8_2140s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (3)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260511_oRmjGqufhFE_875s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 2 boxes (delay 2) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260511_oRmjGqufhFE_875s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260511_oRmjGqufhFE_875s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260427_FKXJ4unviJ4_2405s.jpg</strong> ·
+Leon 3 boxes (adidas 1, delay 1, stripes 1) · model 2 boxes (adidas 1, stripes 1) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260427_FKXJ4unviJ4_2405s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260427_FKXJ4unviJ4_2405s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260129_nt41l3Zt88o_760s.jpg</strong> ·
+Leon 3 boxes (adidas 1, delay 1, stripes 1) · model 2 boxes (adidas 1, stripes 1) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260129_nt41l3Zt88o_760s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260129_nt41l3Zt88o_760s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260129_nt41l3Zt88o_2075s.jpg</strong> ·
+Leon 2 boxes (delay 2) · model 3 boxes (delay 3) ·
+<span class="bad">1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260129_nt41l3Zt88o_2075s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (2)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260129_nt41l3Zt88o_2075s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (3)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260713_CzykZ3hUMwA_455s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260713_CzykZ3hUMwA_455s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260713_CzykZ3hUMwA_455s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260713_CzykZ3hUMwA_2530s.jpg</strong> ·
+Leon 0 boxes (none) · model 0 boxes (none) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260713_CzykZ3hUMwA_2530s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (0)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260713_CzykZ3hUMwA_2530s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (0)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260713_CzykZ3hUMwA_1895s.jpg</strong> ·
+Leon 0 boxes (none) · model 0 boxes (none) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260713_CzykZ3hUMwA_1895s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (0)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260713_CzykZ3hUMwA_1895s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (0)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260615_XpOpUZLiHyY_180s.jpg</strong> ·
+Leon 3 boxes (adidas 1, dkh 1, stripes 1) · model 3 boxes (adidas 1, dkh 1, stripes 1) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260615_XpOpUZLiHyY_180s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260615_XpOpUZLiHyY_180s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (3)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260601_pIx3iVzxeqQ_115s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260601_pIx3iVzxeqQ_115s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260601_pIx3iVzxeqQ_115s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260427_FKXJ4unviJ4_260s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260427_FKXJ4unviJ4_260s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260427_FKXJ4unviJ4_260s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260427_FKXJ4unviJ4_1525s.jpg</strong> ·
+Leon 3 boxes (adidas 1, delay 1, stripes 1) · model 3 boxes (adidas 1, delay 1, stripes 1) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260427_FKXJ4unviJ4_1525s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260427_FKXJ4unviJ4_1525s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (3)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260413_R-y985mlOEc_535s.jpg</strong> ·
+Leon 2 boxes (adidas 1, stripes 1) · model 2 boxes (adidas 1, stripes 1) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260413_R-y985mlOEc_535s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (2)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260413_R-y985mlOEc_535s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260129_nt41l3Zt88o_525s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260129_nt41l3Zt88o_525s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260129_nt41l3Zt88o_525s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260129_nt41l3Zt88o_485s.jpg</strong> ·
+Leon 2 boxes (adidas 1, stripes 1) · model 2 boxes (adidas 1, stripes 1) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260129_nt41l3Zt88o_485s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (2)</figcaption></figure>
+<figure><img src="frame_compare/qwen3-vl-plus_yt__20260129_nt41l3Zt88o_485s.jpg.jpg" loading="lazy">
+<figcaption>qwen3-vl-plus (2)</figcaption></figure>
+</div></div><h2 id="claude-opus-5">claude-opus-5</h2>
+<div class="frame">
+<div class="cap"><strong>ig__2026-03-01_3843175230617463640_0.jpg</strong> ·
+Leon 32 boxes (adidas 9, delay 1, dkh 11, stripes 11) · model 23 boxes (delay 1, stripes 22) ·
+<span class="bad">31 of Leon&#x27;s logos unmatched; 22 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-03-01_3843175230617463640_0.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (32)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_ig__2026-03-01_3843175230617463640_0.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (23)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-03-15_3853463180521522509_0.jpg</strong> ·
+Leon 22 boxes (adidas 11, delay 4, dkh 1, stripes 6) · model 17 boxes (adidas 3, delay 6, dkh 1, stripes 7) ·
+<span class="bad">22 of Leon&#x27;s logos unmatched; 17 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-03-15_3853463180521522509_0.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (22)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_ig__2026-03-15_3853463180521522509_0.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (17)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260601_pIx3iVzxeqQ_555s.jpg</strong> ·
+Leon 25 boxes (adidas 4, delay 2, dkh 1, stripes 18) · model 9 boxes (adidas 2, delay 2, stripes 5) ·
+<span class="bad">21 of Leon&#x27;s logos unmatched; 5 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260601_pIx3iVzxeqQ_555s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (25)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260601_pIx3iVzxeqQ_555s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (9)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260720_0TPhpVefeAI_1710s.jpg</strong> ·
+Leon 15 boxes (adidas 8, stripes 7) · model 11 boxes (adidas 6, delay 4, stripes 1) ·
+<span class="bad">13 of Leon&#x27;s logos unmatched; 9 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260720_0TPhpVefeAI_1710s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (15)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260720_0TPhpVefeAI_1710s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (11)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260720_0TPhpVefeAI_2935s.jpg</strong> ·
+Leon 12 boxes (adidas 3, delay 2, dkh 1, stripes 6) · model 9 boxes (adidas 5, delay 1, dkh 1, stripes 2) ·
+<span class="bad">12 of Leon&#x27;s logos unmatched; 9 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260720_0TPhpVefeAI_2935s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (12)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260720_0TPhpVefeAI_2935s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (9)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-05-03_3888888588272181932_5.jpg</strong> ·
+Leon 9 boxes (adidas 1, delay 2, dkh 1, stripes 5) · model 8 boxes (adidas 1, delay 2, dkh 1, stripes 4) ·
+<span class="bad">9 of Leon&#x27;s logos unmatched; 8 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-05-03_3888888588272181932_5.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (9)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_ig__2026-05-03_3888888588272181932_5.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (8)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-07-06_3935326014816656977_6.jpg</strong> ·
+Leon 6 boxes (adidas 1, delay 2, dkh 1, stripes 2) · model 10 boxes (adidas 2, delay 2, dkh 1, stripes 5) ·
+<span class="bad">6 of Leon&#x27;s logos unmatched; 10 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-07-06_3935326014816656977_6.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (6)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_ig__2026-07-06_3935326014816656977_6.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (10)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260615_XpOpUZLiHyY_985s.jpg</strong> ·
+Leon 8 boxes (adidas 2, delay 3, stripes 3) · model 9 boxes (delay 5, stripes 4) ·
+<span class="bad">7 of Leon&#x27;s logos unmatched; 8 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260615_XpOpUZLiHyY_985s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (8)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260615_XpOpUZLiHyY_985s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (9)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-01-30_3821624126633156923_3.jpg</strong> ·
+Leon 7 boxes (adidas 2, delay 2, dkh 1, stripes 2) · model 8 boxes (adidas 3, delay 2, dkh 1, stripes 2) ·
+<span class="bad">7 of Leon&#x27;s logos unmatched; 8 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-01-30_3821624126633156923_3.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (7)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_ig__2026-01-30_3821624126633156923_3.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (8)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260713_CzykZ3hUMwA_455s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 6 boxes (adidas 1, delay 1, stripes 4) ·
+<span class="bad">4 of Leon&#x27;s logos unmatched; 6 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260713_CzykZ3hUMwA_455s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260713_CzykZ3hUMwA_455s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (6)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-05-21_3902038967499382729_3.jpg</strong> ·
+Leon 4 boxes (delay 2, stripes 2) · model 6 boxes (delay 3, dkh 1, stripes 2) ·
+<span class="bad">4 of Leon&#x27;s logos unmatched; 6 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-05-21_3902038967499382729_3.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_ig__2026-05-21_3902038967499382729_3.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (6)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260601_pIx3iVzxeqQ_1390s.jpg</strong> ·
+Leon 5 boxes (adidas 1, delay 1, dkh 1, stripes 2) · model 4 boxes (adidas 1, delay 1, dkh 1, stripes 1) ·
+<span class="bad">5 of Leon&#x27;s logos unmatched; 4 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260601_pIx3iVzxeqQ_1390s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (5)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260601_pIx3iVzxeqQ_1390s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-02-12_3831042752851271591_4.jpg</strong> ·
+Leon 5 boxes (adidas 1, delay 1, dkh 1, stripes 2) · model 4 boxes (11teamsports 1, adidas 1, delay 1, dkh 1) ·
+<span class="bad">5 of Leon&#x27;s logos unmatched; 4 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-02-12_3831042752851271591_4.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (5)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_ig__2026-02-12_3831042752851271591_4.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260713_CzykZ3hUMwA_2865s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 5 boxes (adidas 2, delay 1, stripes 2) ·
+<span class="bad">4 of Leon&#x27;s logos unmatched; 5 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260713_CzykZ3hUMwA_2865s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260713_CzykZ3hUMwA_2865s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (5)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260517_0gIADzgKJx8_2140s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 5 boxes (adidas 2, delay 1, stripes 2) ·
+<span class="bad">4 of Leon&#x27;s logos unmatched; 5 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260517_0gIADzgKJx8_2140s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260517_0gIADzgKJx8_2140s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (5)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260427_FKXJ4unviJ4_260s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 5 boxes (adidas 2, delay 1, stripes 2) ·
+<span class="bad">4 of Leon&#x27;s logos unmatched; 5 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260427_FKXJ4unviJ4_260s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260427_FKXJ4unviJ4_260s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (5)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260720_0TPhpVefeAI_625s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="bad">4 of Leon&#x27;s logos unmatched; 4 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260720_0TPhpVefeAI_625s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260720_0TPhpVefeAI_625s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260511_oRmjGqufhFE_1375s.jpg</strong> ·
+Leon 5 boxes (11teamsports 1, adidas 1, delay 2, stripes 1) · model 5 boxes (11teamsports 1, adidas 1, delay 2, stripes 1) ·
+<span class="bad">4 of Leon&#x27;s logos unmatched; 4 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260511_oRmjGqufhFE_1375s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (5)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260511_oRmjGqufhFE_1375s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (5)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>ig__2026-03-01_3843257097324633191_5.jpg</strong> ·
+Leon 5 boxes (adidas 1, stripes 4) · model 2 boxes (delay 2) ·
+<span class="bad">5 of Leon&#x27;s logos unmatched; 2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_ig__2026-03-01_3843257097324633191_5.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (5)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_ig__2026-03-01_3843257097324633191_5.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260427_FKXJ4unviJ4_1525s.jpg</strong> ·
+Leon 3 boxes (adidas 1, delay 1, stripes 1) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="bad">3 of Leon&#x27;s logos unmatched; 4 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260427_FKXJ4unviJ4_1525s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260427_FKXJ4unviJ4_1525s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260129_nt41l3Zt88o_760s.jpg</strong> ·
+Leon 3 boxes (adidas 1, delay 1, stripes 1) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="bad">3 of Leon&#x27;s logos unmatched; 4 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260129_nt41l3Zt88o_760s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260129_nt41l3Zt88o_760s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260517_0gIADzgKJx8_2540s.jpg</strong> ·
+Leon 8 boxes (adidas 2, delay 2, dkh 1, stripes 3) · model 11 boxes (11teamsports 1, adidas 2, delay 2, dkh 1, stripes 5) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 5 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260517_0gIADzgKJx8_2540s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (8)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260517_0gIADzgKJx8_2540s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (11)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260427_FKXJ4unviJ4_540s.jpg</strong> ·
+Leon 3 boxes (adidas 1, stripes 2) · model 2 boxes (adidas 1, stripes 1) ·
+<span class="bad">3 of Leon&#x27;s logos unmatched; 2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260427_FKXJ4unviJ4_540s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260427_FKXJ4unviJ4_540s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260427_FKXJ4unviJ4_2405s.jpg</strong> ·
+Leon 3 boxes (adidas 1, delay 1, stripes 1) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 3 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260427_FKXJ4unviJ4_2405s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260427_FKXJ4unviJ4_2405s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260129_nt41l3Zt88o_1070s.jpg</strong> ·
+Leon 2 boxes (delay 2) · model 3 boxes (delay 2, stripes 1) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 3 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260129_nt41l3Zt88o_1070s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (2)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260129_nt41l3Zt88o_1070s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (3)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260607_UCXXWMDgv78_1545s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 3 boxes (11teamsports 1, delay 2) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260607_UCXXWMDgv78_1545s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260607_UCXXWMDgv78_1545s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (3)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260413_R-y985mlOEc_535s.jpg</strong> ·
+Leon 2 boxes (adidas 1, stripes 1) · model 2 boxes (adidas 1, stripes 1) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260413_R-y985mlOEc_535s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (2)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260413_R-y985mlOEc_535s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260129_nt41l3Zt88o_2075s.jpg</strong> ·
+Leon 2 boxes (delay 2) · model 2 boxes (delay 2) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260129_nt41l3Zt88o_2075s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (2)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260129_nt41l3Zt88o_2075s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260720_0TPhpVefeAI_1140s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 2 boxes (delay 2) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260720_0TPhpVefeAI_1140s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260720_0TPhpVefeAI_1140s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260601_pIx3iVzxeqQ_1010s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 2 boxes (delay 2) ·
+<span class="bad">2 of Leon&#x27;s logos unmatched; 1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260601_pIx3iVzxeqQ_1010s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260601_pIx3iVzxeqQ_1010s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260615_XpOpUZLiHyY_180s.jpg</strong> ·
+Leon 3 boxes (adidas 1, dkh 1, stripes 1) · model 4 boxes (adidas 1, delay 1, stripes 2) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched; 2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260615_XpOpUZLiHyY_180s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260615_XpOpUZLiHyY_180s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (4)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260129_nt41l3Zt88o_525s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 5 boxes (adidas 1, delay 1, stripes 3) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched; 2 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260129_nt41l3Zt88o_525s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260129_nt41l3Zt88o_525s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (5)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260615_XpOpUZLiHyY_1415s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 3 boxes (delay 3) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched; 1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260615_XpOpUZLiHyY_1415s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260615_XpOpUZLiHyY_1415s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (3)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260129_nt41l3Zt88o_485s.jpg</strong> ·
+Leon 2 boxes (adidas 1, stripes 1) · model 2 boxes (adidas 1, stripes 1) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched; 1 model boxes match nothing</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260129_nt41l3Zt88o_485s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (2)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260129_nt41l3Zt88o_485s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260615_XpOpUZLiHyY_1565s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 2 boxes (delay 2) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260615_XpOpUZLiHyY_1565s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260615_XpOpUZLiHyY_1565s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260601_pIx3iVzxeqQ_115s.jpg</strong> ·
+Leon 4 boxes (adidas 1, delay 1, stripes 2) · model 3 boxes (adidas 1, delay 1, stripes 1) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260601_pIx3iVzxeqQ_115s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (4)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260601_pIx3iVzxeqQ_115s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (3)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260511_oRmjGqufhFE_875s.jpg</strong> ·
+Leon 3 boxes (delay 3) · model 2 boxes (delay 2) ·
+<span class="bad">1 of Leon&#x27;s logos unmatched</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260511_oRmjGqufhFE_875s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (3)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260511_oRmjGqufhFE_875s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (2)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260713_CzykZ3hUMwA_2530s.jpg</strong> ·
+Leon 0 boxes (none) · model 0 boxes (none) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260713_CzykZ3hUMwA_2530s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (0)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260713_CzykZ3hUMwA_2530s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (0)</figcaption></figure>
+</div></div>
+<div class="frame">
+<div class="cap"><strong>yt__20260713_CzykZ3hUMwA_1895s.jpg</strong> ·
+Leon 0 boxes (none) · model 0 boxes (none) ·
+<span class="good">all matched at IoU 0.3+</span></div>
+<div class="pair">
+<figure><img src="frame_compare/truth_yt__20260713_CzykZ3hUMwA_1895s.jpg.jpg" loading="lazy">
+<figcaption>Leon's truth (0)</figcaption></figure>
+<figure><img src="frame_compare/claude-opus-5_yt__20260713_CzykZ3hUMwA_1895s.jpg.jpg" loading="lazy">
+<figcaption>claude-opus-5 (0)</figcaption></figure>
+</div></div>
+</body></html>

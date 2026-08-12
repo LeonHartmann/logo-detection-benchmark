@@ -53,6 +53,15 @@ making it the overall presence leader of the whole matrix. One small model
 genuinely benefits from focus while five others drown in it. Method effects
 are model-specific; test before you standardize.</p>
 
+<p style="max-width:860px"><strong>The production engine validates its own
+pipeline design.</strong> qwen3.8-max is one of only three models that
+reference images help at finding brands (0.874 to 0.900 on the reliable
+brands), which is exactly why the palette-equipped production pipeline
+measures higher than this benchmark's bare-model row. The refs box tax still
+applies to it (hit@0.3 0.595 to 0.489), zoom helps it only at low resolution
+(144p F1 0.645 to 0.694), and per-brand calls hurt it, replicating the
+production finding a third time.</p>
+
 <p style="max-width:860px"><strong>Format compliance is part of capability.</strong>
 perceptron-mk1 (75 percent parse failure) and ui-tars-1.5-7b (own output
 dialect, F1 0.0) cannot be used through a JSON contract regardless of their
