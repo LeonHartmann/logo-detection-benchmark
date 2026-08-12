@@ -54,3 +54,7 @@ models:
   - {name: qwen3.8-max+refs,     provider: dashscope, model: qwen3.8-max, enabled: true, refs: true, price_in: 2.0, price_out: 6.0}
   - {name: qwen3.8-max+zoom,     provider: dashscope, model: qwen3.8-max, enabled: true, tools: [zoom], price_in: 2.0, price_out: 6.0}
   - {name: qwen3.8-max+perbrand, provider: dashscope, model: qwen3.8-max, enabled: true, refs: true, per_brand: true, price_in: 2.0, price_out: 6.0}
+  # local open-set prototype: Grounding DINO proposals + CLIP gallery matching,
+  # no per-brand training. Runs via scripts/openset_scan.py (writes raw rows
+  # directly); enabled: false keeps it out of bench run.
+  - {name: gdino-clip-openset, provider: local, model: local, enabled: false, price_in: 0, price_out: 0}
